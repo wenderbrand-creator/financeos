@@ -11,7 +11,7 @@ import { pad, D } from "../../domain/dates";
 import { Finance } from "../../domain/finance";
 import { uid } from "../../domain/ids";
 import { Money } from "../../domain/money";
-import { NUM_RE } from "../../domain/series";
+import { NUM_RE, isInstallment } from "../../domain/series";
 import { range } from "../../import/parsers";
 import { useApp } from "../../state/AppContext";
 
@@ -185,7 +185,7 @@ export function CardsPage() {
             <thead><tr><th>Compra</th><th>Descrição</th><th>Categoria</th><th className="r">Valor</th><th className="r"><span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>Ações</span></th></tr></thead>
             <tbody>{items.map((t, i) => <tr key={t.id} className="tap-row" onClick={e => { if (!(e.target as HTMLElement).closest("button")) actions.openTx(t); }} style={{ animationDelay: `${Math.min(i, 14) * 22}ms` }}>
               <td className="date c-date">{D.brShort(t.date)}</td>
-              <td className="desc c-desc"><b>{t.description}</b>{t.seriesId && <span><span className="series-tag" style={{ marginLeft: 0 }}><Icon name="repeat" size={11} sw={2} />{NUM_RE.test(t.description) ? "parcela" : "recorrente"} {t.seriesIndex}/{t.seriesTotal}</span></span>}</td>
+              <td className="desc c-desc"><b>{t.description}</b>{t.seriesId && <span><span className="series-tag" style={{ marginLeft: 0 }}><Icon name="repeat" size={11} sw={2} />{isInstallment(t) ? `parcela ${t.seriesIndex}/${t.seriesTotal}` : "assinatura mensal"}</span></span>}</td>
               <td className="c-cat"><CatPill id={t.category} /></td>
               <td className="r amt c-amt" style={{ color: t.type === "income" ? "var(--pos)" : "var(--text)" }}><Amount cents={t.amountCents} sign={t.type === "income" ? "+" : undefined} /></td>
               <td className="c-act"><div className="row-acts">
@@ -201,7 +201,7 @@ export function CardsPage() {
 
         <div className="col-4" style={{ display: "flex", flexDirection: "column", gap: "var(--gap)" }}>
           <div className="card">
-            <div className="card-head"><div><h3 className="card-title">Limite</h3><div className="card-sub">Inclui parcelas futuras</div></div></div>
+            <div className="card-head"><div><h3 className="card-title">Limite</h3><div className="card-sub">Parcelas futuras ocupam o limite; assinaturas, só o mês cobrado</div></div></div>
             <div className="card-body">
               {card.limitCents ? <>
                 <div className="limit-figs"><div><span>Usado</span><b><Amount cents={used} /></b></div><div style={{ textAlign: "right" }}><span>Disponível</span><b style={{ color: "var(--pos)" }}><Amount cents={Math.max(card.limitCents - used, 0)} /></b></div></div>
