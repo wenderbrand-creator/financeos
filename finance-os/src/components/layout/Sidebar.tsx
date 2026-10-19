@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from
 import { NAV } from "../../app/nav";
 import { Icon, BrandMark } from "../icons";
 import { Finance } from "../../domain/finance";
+import { useApp } from "../../state/AppContext";
 
 export function Sidebar({ page, go, collapsed, setCollapsed, open, storeKind, isDemo }: any) {
   const chip = isDemo ? { icon: "flask", t: "Demonstração", s: "Nada é salvo" }
@@ -33,6 +34,7 @@ export function Sidebar({ page, go, collapsed, setCollapsed, open, storeKind, is
         <div className="store-chip" title={collapsed ? `${chip.t} · ${chip.s}` : undefined}><Icon name={chip.icon} size={17} style={{ color: isDemo || storeKind !== "cloud" ? "var(--warn)" : "var(--pos)", flexShrink: 0 }} />
           <div className="side-foot-text"><b>{chip.t}</b>{chip.s}</div></div>
         <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}><Icon name="panel" size={17} /><span className="side-foot-text">Recolher menu</span></button>
+        {storeKind === "cloud" && <LogoutButton collapsed={collapsed} />}
       </div>
     </aside>
   );
@@ -46,4 +48,18 @@ export function SaveIndicator({ state, kind, isDemo, onRetry }: any) {
   if (kind === "memory") return <span className="save-ind error hide-sm"><span className="dot" />Não salvo</span>;
   if (kind === "cloud") return <span className="save-ind hide-sm"><span className="dot" />{state.at ? "Salvo" : "Sincronizado"}</span>;
   return <span className="save-ind saving"><span className="dot" />Conectando…</span>;
+}
+
+/** Sign-out entry at the bottom of the sidebar (cloud mode only). Asks for confirmation first. */
+function LogoutButton({ collapsed }: { collapsed: boolean }) {
+  const { actions, userLogin } = useApp();
+  return (
+    <button className="collapse-btn logout-btn" onClick={actions.signOut} title={collapsed ? `Sair (${userLogin})` : undefined} aria-label="Sair da conta">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M14.5 4.5h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-3" /><path d="M10 16.5 5.5 12 10 7.5" /><path d="M5.5 12h10" />
+      </svg>
+      <span className="side-foot-text">Sair{userLogin ? <span style={{ color: "var(--text-3)", fontWeight: 400 }}> · {userLogin}</span> : null}</span>
+      <style>{`.logout-btn:hover{color:var(--neg)!important;background:var(--neg-soft)!important}@media (max-width:760px){.logout-btn{display:flex!important}}`}</style>
+    </button>
+  );
 }
