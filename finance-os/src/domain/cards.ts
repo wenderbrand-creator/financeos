@@ -1,6 +1,7 @@
 import { isTransfer } from "./categories";
 import { pad, MONTHS, D } from "./dates";
 import { uid } from "./ids";
+import { isRecurring } from "./series";
 
 /* =====================================================================
    CREDIT CARDS — bill cycles, installments, bill payments
@@ -55,9 +56,18 @@ export const CardMath = {
     return { ...b, ...dt, remaining, status };
   },
   /** everything still owed on the card, including future installments */
-  used(card, txs) {
+  /**
+   * Limit in use: everything already charged and not yet paid, plus future installments
+   * (an installment purchase holds the whole amount on the limit). Future charges of a
+   * recurring subscription do NOT hold limit: each month only counts once it is charged.
+   */
+  used(card, txs, today = D.todayISO()) {
     let u = 0;
-    for (const t of txs) if (t.accountId === card.id) u += t.type === "expense" ? t.amountCents : -t.amountCents;
+    for (const t of txs) {
+      if (t.accountId !== card.id) continue;
+      if (t.type === "expense" && t.date > today && isRecurring(t)) continue;
+      u += t.type === "expense" ? t.amountCents : -t.amountCents;
+    }
     return Math.max(u, 0);
   },
   /** bills that need attention for a given month (due that month, or overdue) */
@@ -76,7 +86,7 @@ export const CardMath = {
   },
 };
 export function buildInstallments(first, n) {
-  const sid = uid("s"), base = Math.floor(first.amountCents / n), rem = first.amountCents - base * n;
+  const sid = uid("p"), base = Math.floor(first.amountCents / n), rem = first.amountCents - base * n;
   const [y, m, d] = first.date.split("-").map(Number), out = [];
   for (let i = 0; i < n; i++) {
     const k = D.addMonths(`${y}-${pad(m)}`, i), date = `${k}-${pad(Math.min(d, D.days(k)))}`;
