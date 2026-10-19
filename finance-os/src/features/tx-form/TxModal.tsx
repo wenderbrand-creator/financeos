@@ -183,7 +183,7 @@ export function TxModal({ initial, onClose }: any) {
             <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 550, fontSize: 13.5 }}><Icon name="repeat" size={16} />Repetir todo mês</span>
             <button type="button" role="switch" aria-checked={f.repeat} aria-label="Repetir todo mês" className={"switch" + (f.repeat ? " on" : "")} onClick={() => set("repeat", !f.repeat)} />
           </div>
-          {f.repeat && onCard && <span className="hint" style={{ display: "block", marginTop: 8 }}>Ideal para assinaturas cobradas todo mês no cartão.</span>}
+          {f.repeat && onCard && <span className="hint" style={{ display: "block", marginTop: 8 }}>Assinatura mensal: cada cobrança entra na fatura do seu mês e só ocupa o limite quando for cobrada. Diferente de parcelamento.</span>}
           {f.repeat && <div className="repeat-body">
             <div className="grid2">
               <div className="field">
