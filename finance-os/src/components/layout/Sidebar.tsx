@@ -31,10 +31,10 @@ export function Sidebar({ page, go, collapsed, setCollapsed, open, storeKind, is
         </button>)}
       </React.Fragment>)}</nav>
       <div className="side-foot">
-        <div className="store-chip" title={collapsed ? `${chip.t} · ${chip.s}` : undefined}><Icon name={chip.icon} size={17} style={{ color: isDemo || storeKind !== "cloud" ? "var(--warn)" : "var(--pos)", flexShrink: 0 }} />
-          <div className="side-foot-text"><b>{chip.t}</b>{chip.s}</div></div>
+        {(isDemo || storeKind !== "cloud") && <div className="store-chip" title={collapsed ? `${chip.t} · ${chip.s}` : undefined}><Icon name={chip.icon} size={17} style={{ color: "var(--warn)", flexShrink: 0 }} />
+          <div className="side-foot-text"><b>{chip.t}</b>{chip.s}</div></div>}
+        {storeKind === "cloud" && <UserCard collapsed={collapsed} />}
         <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}><Icon name="panel" size={17} /><span className="side-foot-text">Recolher menu</span></button>
-        {storeKind === "cloud" && <LogoutButton collapsed={collapsed} />}
       </div>
     </aside>
   );
@@ -50,16 +50,31 @@ export function SaveIndicator({ state, kind, isDemo, onRetry }: any) {
   return <span className="save-ind saving"><span className="dot" />Conectando…</span>;
 }
 
-/** Sign-out entry at the bottom of the sidebar (cloud mode only). Asks for confirmation first. */
-function LogoutButton({ collapsed }: { collapsed: boolean }) {
+/** Signed-in user at the bottom of the sidebar, with the sign-out button (asks for confirmation). */
+function UserCard({ collapsed }: { collapsed: boolean }) {
   const { actions, userLogin } = useApp();
+  const name = userLogin || "Você";
   return (
-    <button className="collapse-btn logout-btn" onClick={actions.signOut} title={collapsed ? `Sair (${userLogin})` : undefined} aria-label="Sair da conta">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M14.5 4.5h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-3" /><path d="M10 16.5 5.5 12 10 7.5" /><path d="M5.5 12h10" />
-      </svg>
-      <span className="side-foot-text">Sair{userLogin ? <span style={{ color: "var(--text-3)", fontWeight: 400 }}> · {userLogin}</span> : null}</span>
-      <style>{`.logout-btn:hover{color:var(--neg)!important;background:var(--neg-soft)!important}@media (max-width:760px){.logout-btn{display:flex!important}}`}</style>
-    </button>
+    <div className={"user-card" + (collapsed ? " is-collapsed" : "")}>
+      <span className="uc-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
+      <div className="side-foot-text uc-text"><b>{name}</b><span>Conectado</span></div>
+      <button type="button" className="uc-out" onClick={actions.signOut} aria-label="Sair da conta" title="Sair da conta">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M14.5 4.5h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-3" /><path d="M10 16.5 5.5 12 10 7.5" /><path d="M5.5 12h10" />
+        </svg>
+        {!collapsed && <span className="uc-out-label">Sair</span>}
+      </button>
+      <style>{`
+.user-card{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 10px;border-radius:var(--r-md);background:var(--surface-2);min-height:48px}
+.user-card .uc-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-weight:650;font-size:13px;background:var(--accent-soft);color:var(--accent-ink)}
+.user-card .uc-text{flex:1;min-width:0;display:flex;flex-direction:column;font-size:12px;color:var(--text-3)}
+.user-card .uc-text b{color:var(--text);font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-card .uc-out{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--text-2);font:inherit;font-size:12.5px;font-weight:550;cursor:pointer;transition:background .15s,color .15s}
+.user-card .uc-out:hover{background:var(--neg-soft);color:var(--neg)}
+.user-card.is-collapsed{flex-direction:column;padding:8px 0;gap:6px}
+.user-card.is-collapsed .uc-out{padding:0;width:32px;justify-content:center}
+@media (max-width:760px){.user-card.is-collapsed{flex-direction:row;padding:8px 8px 8px 10px}.user-card.is-collapsed .uc-out-label{display:inline}}
+`}</style>
+    </div>
   );
 }
