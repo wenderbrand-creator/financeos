@@ -1,3 +1,9 @@
+/* reset (the Claude Artifact host provided these; the standalone app needs them itself) */
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0;padding:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+::selection{background:color-mix(in srgb,var(--accent) 24%,transparent)}
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
 *{box-sizing:border-box}
