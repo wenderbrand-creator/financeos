@@ -1,7 +1,7 @@
 import { supabase } from "./supabaseClient";
 import { USERNAME_DOMAIN } from "./config";
 
-/** "wender" → "wender@users.financeos.app"; e-mails pass through unchanged. */
+/** "maria" → "maria@users.financeos.app"; e-mails pass through unchanged. */
 export function loginToEmail(login: string): string {
   const v = login.trim().toLowerCase();
   if (v.includes("@")) return v;
@@ -22,10 +22,10 @@ function translate(msg: string): string {
   if (m.includes("invalid login credentials")) return "Usuário ou senha incorretos.";
   if (m.includes("already registered") || m.includes("already exists")) return "Este usuário já existe. Use a aba Entrar.";
   if (m.includes("password should be at least") || m.includes("weak")) return "A senha é fraca. Use pelo menos 6 caracteres.";
-  if (m.includes("email not confirmed")) return "Conta criada, mas a confirmação de e-mail está ativa no Supabase. Desative “Confirm email” (veja o README) e tente de novo.";
+  if (m.includes("email not confirmed")) return "Sua conta foi criada, mas ainda não pode ser acessada. Tente entrar novamente em alguns minutos ou fale com o suporte.";
   if (m.includes("signups not allowed") || m.includes("signup is disabled")) return "Novos cadastros estão desativados.";
   if (m.includes("rate limit")) return "Muitas tentativas. Aguarde um minuto.";
-  if (m.includes("failed to fetch") || m.includes("network")) return "Sem conexão com o servidor. Verifique a internet e as variáveis do Supabase.";
+  if (m.includes("failed to fetch") || m.includes("network")) return "Sem conexão com o servidor. Verifique sua internet e tente de novo.";
   return msg;
 }
 export async function signIn(login: string, password: string): Promise<string | null> {
