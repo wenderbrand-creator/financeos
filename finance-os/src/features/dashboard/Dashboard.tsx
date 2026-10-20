@@ -1,3 +1,4 @@
+import { FirstSteps } from "../onboarding/Welcome";
 import { useMemo } from "react";
 import { CategoryBars } from "../../components/charts/CategoryBars";
 import { FlowChart } from "../../components/charts/FlowChart";
@@ -43,7 +44,8 @@ export function Dashboard() {
 
   return (
     <div className="dash stagger">
-      {isEmpty && !isDemo && <div className="welcome">
+      <FirstSteps />
+      {isEmpty && !isDemo && !(data.settings.onboarding && data.settings.onboarding.done) && <div className="welcome">
         <div><div className="eyebrow">Primeiros passos</div>
           <h3 style={{ marginTop: 6 }}>Seu painel começa vazio, e os números só mudam com lançamentos reais.</h3>
           <p>Registre uma receita ou despesa para ver saldo, gráficos e vencimentos calculados. Para conhecer a interface com dados fictícios, abra a demonstração; ela fica separada dos seus registros.</p></div>
