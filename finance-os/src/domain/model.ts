@@ -7,7 +7,7 @@ import { Money } from "./money";
    4. DATA MODEL — normalize / validate (non-destructive, tolerant reads)
    ===================================================================== */
 export function defaultSettings(): any {
-  return { schemaVersion: SCHEMA_VERSION, profileName: "Wender", accounts: [{ id: "acc-main", name: "Conta principal", type: "corrente", openingCents: 0 }], categories: defaultCategories() };
+  return { schemaVersion: SCHEMA_VERSION, profileName: "", accounts: [{ id: "acc-main", name: "Conta principal", type: "corrente", openingCents: 0 }], categories: defaultCategories() };
 }
 export function normalizeSettings(raw) {
   const d = defaultSettings();
