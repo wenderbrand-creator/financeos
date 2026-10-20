@@ -52,13 +52,75 @@
 kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--surface);color:var(--text)}
 
 /* ===== auth ===== */
+/* Split screen: brand pitch on an ink panel tinted by the accent (same in both themes), form on the page background. */
+.auth{min-height:100%;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);background:var(--bg)}
+.auth-pitch{--ink:color-mix(in oklab,var(--accent-base) 22%,#090a12);--ink-2:color-mix(in oklab,var(--accent-base) 30%,#11131e);--on:#F3F2FF;--on-2:rgba(236,235,255,.72);--on-3:rgba(236,235,255,.5);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:40px;
+  padding-block:40px;padding-left:max(48px,env(safe-area-inset-left,0px));padding-right:48px;
+  background:radial-gradient(120% 80% at 100% 0%,var(--ink-2) 0%,transparent 60%),var(--ink);color:var(--on)}
+.auth-pitch > *{position:relative;z-index:1}
+.auth-brand{display:flex;align-items:center;gap:10px}
+.auth-pitch .brand-mark{background:var(--on);color:var(--ink)}
+.auth-pitch .brand-name{color:var(--on)}.auth-pitch .brand-name span{color:var(--on-3)}
+.auth-pitch-body{max-width:520px;display:flex;flex-direction:column;gap:28px}
+.auth-headline{margin:0;font-size:clamp(34px,3.6vw,52px);line-height:1.04;font-weight:650;letter-spacing:-.035em;text-wrap:balance}
+.auth-lead{margin:-8px 0 0;font-size:16.5px;line-height:1.55;color:var(--on-2);max-width:46ch}
+.auth-points{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.auth-points li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;font-size:14px;line-height:1.5;color:var(--on-2)}
+.auth-points li svg{margin-top:3px;color:color-mix(in oklab,var(--accent-base) 45%,#fff)}
+.auth-points b{color:var(--on);font-weight:600}
+.auth-pitch-foot{margin:0;font-size:12.5px;color:var(--on-3)}
+
+/* product glimpse — one authored entrance */
+.auth-glimpse{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:16px;align-items:center;padding:16px;border-radius:18px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);animation:glimpseIn .9s cubic-bezier(.16,1,.3,1) .1s backwards}
+@keyframes glimpseIn{from{opacity:0;transform:translateY(14px) scale(.985);filter:blur(4px)}}
+.ag-card{aspect-ratio:1.586;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;
+  background:radial-gradient(120% 90% at 100% 0%,color-mix(in oklab,var(--accent-base) 70%,#fff) 0%,transparent 55%),color-mix(in oklab,var(--accent-base) 82%,#0b0c12);
+  box-shadow:0 18px 36px -18px rgba(0,0,0,.6)}
+.ag-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ag-name{font-weight:650;font-size:13.5px}
+.ag-bill{display:flex;flex-direction:column}.ag-bill span{font-size:11px;opacity:.8}.ag-bill b{font-size:19px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ag-limit{height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden}.ag-limit i{display:block;height:100%;background:#fff;border-radius:2px}
+.ag-meta{font-size:10.5px;opacity:.85}
+.ag-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ag-list li{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 2px;border-bottom:1px solid rgba(255,255,255,.07);font-size:13px;color:var(--on-2)}
+.ag-list li:last-child{border-bottom:0}
+.ag-list b{color:var(--on);font-weight:600;font-variant-numeric:tabular-nums}
+.ag-list em{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--on-3);margin-left:4px}
+.ag-dot{width:8px;height:8px;border-radius:2px}
+.ag-caption{grid-column:1/-1;font-size:11px;color:var(--on-3)}
+
+/* form side */
+.auth-main{display:grid;place-items:center;padding-block:40px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
+.auth-form{width:100%;max-width:380px;display:flex;flex-direction:column;gap:18px}
+.auth-brand-sm{display:none}
+.auth-title{margin:0;font-size:26px;font-weight:650;letter-spacing:-.025em}
+.auth-sub{margin:6px 0 4px;color:var(--text-2);font-size:14px;line-height:1.5}
+.auth-form .input{height:46px;font-size:15px}
+.pass-wrap{position:relative}
+.pass-wrap .input{padding-right:46px}
+.pass-wrap .btn{position:absolute;right:6px;top:7px}
+.auth-btn{height:48px;font-size:15px;margin-top:4px}
+.auth-btn svg{transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.auth-btn:hover svg{transform:translateX(3px)}
+.auth-switch{margin:0;text-align:center;font-size:13.5px;color:var(--text-2)}
+.auth-switch .link-btn{font-size:13.5px}
+.auth-note{text-align:center;margin:-6px 0 0}
+.auth-reveal{animation:enter .35s cubic-bezier(.16,1,.3,1) backwards}
+.auth ::selection{background:color-mix(in srgb,var(--accent-base) 30%,transparent)}
+
+@media (max-width:960px){
+  .auth{grid-template-columns:minmax(0,1fr)}
+  .auth-main{order:-1;padding-block:28px 32px;place-items:start center}
+  .auth-brand-sm{display:flex;margin-bottom:6px}
+  .auth-pitch{padding-block:36px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));gap:28px}
+  .auth-pitch > .auth-brand{display:none}
+  .auth-headline{font-size:30px}
+  .auth-glimpse{grid-template-columns:minmax(0,1fr)}
+  .ag-card{max-width:300px}
+}
+
+/* single-card screens (connection problem) */
 .auth-wrap{min-height:100%;display:grid;place-items:center;padding-block:32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--bg)}
 .auth-card{width:100%;max-width:400px;display:flex;flex-direction:column;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--shadow-md);padding:32px 28px}
-.auth-brand{display:flex;align-items:center;gap:10px}
-.auth-title{margin:0;font-size:24px;font-weight:650;letter-spacing:-.02em}
-.auth-sub{margin:6px 0 0;color:var(--text-2);font-size:13.5px}
-.auth-card .seg{align-self:flex-start}
-.pass-wrap{position:relative}
-.pass-wrap .input{padding-right:44px}
-.pass-wrap .btn{position:absolute;right:4px;top:4px}
-.auth-btn{height:44px;font-size:14.5px}
