@@ -22,7 +22,7 @@ export function Help() {
           <h5>Categorias</h5><p>Crie, renomeie, mude a cor ou arquive categorias em Configurações. Categorias em uso não podem ser excluídas, só arquivadas.</p>
           <h5>Mês de referência</h5><p>As setas no topo mudam o mês de todas as telas. Clique no nome do mês para voltar ao mês atual.</p>
           <h5>Ocultar valores</h5><p>O ícone de olho troca todos os valores por asteriscos, útil ao compartilhar a tela.</p>
-          <h5>Onde ficam os dados</h5><p>{storeKind === "cloud" ? "No seu banco Supabase, protegido por usuário e senha. Só a sua conta lê e grava esses registros." : storeKind === "local" ? "Neste navegador (armazenamento local). Exporte backups com frequência: limpar os dados do navegador apaga os registros." : "Somente na memória desta aba. Exporte um backup antes de fechar."}</p>
+          <h5>Onde ficam os dados</h5><p>{storeKind === "cloud" ? "Na nuvem, protegidos pelo seu login. Só a sua conta lê e grava esses registros, e você acessa de qualquer dispositivo." : storeKind === "local" ? "Neste navegador (armazenamento local). Exporte backups com frequência: limpar os dados do navegador apaga os registros." : "Somente na memória desta aba. Exporte um backup antes de fechar."}</p>
           <h5>Backup</h5><p>Em Configurações, exporte um arquivo JSON e restaure quando precisar. A restauração valida o arquivo e pede confirmação antes de substituir qualquer coisa.</p>
         </div>
       </div>
