@@ -3,7 +3,7 @@ import { Icon } from "../../components/icons";
 import { useApp } from "../../state/AppContext";
 
 export function Help() {
-  const { storeKind } = useApp();
+  const { storeKind, actions } = useApp();
   return (
     <div className="help-grid stagger">
       <div className="card">
@@ -15,6 +15,7 @@ export function Help() {
       <div className="card">
         <div className="card-head"><div><h3 className="card-title">Como usar</h3></div></div>
         <div className="prose">
+          {storeKind && <div style={{ margin: "4px 0 6px" }}><button type="button" className="btn sm" onClick={actions.openWelcome}><Icon name="repeat" size={14} />Rever a introdução</button></div>}
           <h5>Lançamentos</h5><p>Use “Novo lançamento” no topo ou aperte <kbd>N</kbd> em qualquer tela. Status pago entra no saldo atual; pendente aparece em próximos vencimentos e só conta no saldo previsto. Ao excluir, você tem alguns segundos para desfazer.</p>
           <h5>Importar extrato ou fatura</h5><p>Em Orçamento, use “Importar extrato” com um arquivo OFX ou CSV do banco. O app sugere categorias (aprendendo com o que você já lançou), marca o que já existe e só grava depois da sua revisão. Para cartão de crédito, crie uma conta do tipo cartão: o pagamento da fatura vira transferência entre contas e as compras contam uma vez só.</p>
           <h5>Cartões de crédito</h5><p>Cadastre o cartão com fechamento e vencimento. No novo lançamento, escolha “Pagar com: Cartão de crédito” e, se quiser, as parcelas. A compra conta como gasto no dia e vai para a fatura certa. Ao pagar a fatura, o valor sai da conta como transferência, sem contar duas vezes.</p>
