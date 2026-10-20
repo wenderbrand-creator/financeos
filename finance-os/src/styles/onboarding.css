@@ -48,6 +48,13 @@
 .wl-pcard b{font-size:18px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .wl-pcard i{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden}
 .wl-pcard em{display:block;height:100%;background:#fff;border-radius:2px}
+.wl-cardcolor{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.wl-cardcolor .swatches{flex:1;min-width:220px;gap:7px}
+.wl-cardcolor .sw-btn{width:30px;height:30px}
+.wl-pcard-sm{--cc:var(--c1);width:150px;padding:10px 12px;transition:background .35s ease,box-shadow .35s ease;
+  background:radial-gradient(120% 90% at 100% 0%,color-mix(in oklab,var(--cc) 70%,#fff) 0%,transparent 55%),color-mix(in oklab,var(--cc) 82%,#0b0c12);
+  box-shadow:0 12px 24px -14px color-mix(in srgb,var(--cc) 80%,transparent)}
+.wl-pcard-sm b{font-size:15px}
 .wl-pside{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 
 .wl-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -109,4 +116,8 @@
   .fs-list{grid-template-columns:minmax(0,1fr)}
   .fs-bar{display:none}
   .fs-head .btn{margin-left:auto}
+  .wl-cardcolor .swatches{display:grid;grid-template-columns:repeat(5,32px);gap:10px;flex:0 0 auto;min-width:0}
+  .wl-cardcolor .sw-btn{width:32px;height:32px}
+  .wl-cardcolor{flex-wrap:nowrap;gap:14px}
+  .wl-pcard-sm{width:132px;flex-shrink:0}
 }
