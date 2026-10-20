@@ -22,6 +22,7 @@ import { Overview } from "./features/overview/Overview";
 import { PendingModule } from "./features/pending/PendingModule";
 import { pointOf } from "./features/settings/Appearance";
 import { Settings } from "./features/settings/Settings";
+import { Welcome } from "./features/onboarding/Welcome";
 import { TxModal } from "./features/tx-form/TxModal";
 import { normPrefs, applyPrefs, motionAllowed, effectiveTheme, loadUI, saveUI } from "./services/prefs";
 import { AppCtx } from "./state/AppContext";
@@ -53,6 +54,8 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
   const [toasts, setToasts] = useState([]);
   const [scrolled, setScrolled] = useState(false);
   const [cardBill, setCardBill] = useState(null);
+  const [welcomeForced, setWelcomeForced] = useState(false);
+  const [welcomeClosed, setWelcomeClosed] = useState(false);
   const storeRef = useRef(null), demoRef = useRef(null), lastFailed = useRef(null);
   const prefsRef = useRef(prefs), realRef = useRef(real), prefsTimer = useRef<any>(0), prefsPending = useRef(false);
   realRef.current = real;
@@ -186,6 +189,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
       return ok;
     },
     openImport: () => setModal({ kind: "import" }),
+    openWelcome: () => { if (demoRef.current) { demoRef.current = null; setDemo(null); } setWelcomeClosed(false); setWelcomeForced(true); },
     goCards: (billKey) => { setCardBill(billKey || null); go("cartoes"); },
     openPayBill: (cardId, key) => setModal({ kind: "paybill", cardId, key }),
     payBill: async (list, msg) => {
@@ -227,6 +231,10 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
   const curMonth = D.monthOf(D.todayISO());
   // greeting: the name set in Settings; otherwise the login (when it is a username, not an e-mail)
   const fallbackName = !isDemo && userLogin && !userLogin.includes("@") ? userLogin.charAt(0).toUpperCase() + userLogin.slice(1) : "";
+  // first-run welcome: new accounts (never finished/skipped and no data yet), or reopened from Ajuda
+  const ob = real.settings.onboarding;
+  const showWelcome = !isDemo && real.ready && !real.error && !!storeKind && !welcomeClosed &&
+    (welcomeForced || (!(ob && ob.done) && real.txs.length === 0));
   const name = ((data.settings.profileName || "").trim() || fallbackName).trim();
   const eyebrow = page === "inicio" ? `${D.greeting()}${name ? ", " + name : ""}` : NAV.find(g => g.items.includes(nav))?.group;
   const showMonth = ["inicio", "visao", "orcamento"].includes(page);
@@ -273,6 +281,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
       </div>
       {modal && modal.kind === "tx" && <TxModal initial={modal.tx} onClose={() => setModal(null)} />}
       {modal && modal.kind === "import" && <ImportModal onClose={() => setModal(null)} />}
+      {showWelcome && <Welcome fallbackName={fallbackName} onClose={() => { setWelcomeClosed(true); setWelcomeForced(false); }} />}
       {modal && modal.kind === "paybill" && <PayBillModal cardId={modal.cardId} billKey={modal.key} onClose={() => setModal(null)} />}
       {confirmReq && <ConfirmDialog {...confirmReq} onResolve={(v) => { confirmReq.res(v); setConfirmReq(null); }} />}
       <div className="toasts" aria-live="polite">{toasts.map(t => <div key={t.id} className={"toast" + (t.tone === "err" ? " err" : "") + (t.out ? " out" : "")}><Icon name={t.tone === "err" ? "alert" : "checkCircle"} size={16} /><span>{t.msg}</span>
