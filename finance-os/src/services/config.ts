@@ -8,3 +8,5 @@ export const STORAGE_MODE: "supabase" | "local" =
 export const ALLOW_SIGNUP = (import.meta.env.VITE_ALLOW_SIGNUP as string | undefined) !== "false";
 /** Usernames without "@" become <username>@<domain> internally for Supabase Auth. */
 export const USERNAME_DOMAIN = (import.meta.env.VITE_USERNAME_DOMAIN as string | undefined)?.trim() || "users.financeos.app";
+/** Minutes without interaction before the session is closed automatically (0 = never). */
+export const IDLE_MINUTES = (() => { const v = Number(import.meta.env.VITE_IDLE_MINUTES ?? 30); return Number.isFinite(v) && v >= 0 ? v : 30; })();
