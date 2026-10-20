@@ -43,7 +43,7 @@ export function AccountModal({ initial, onClose }: any) {
     <Modal title={initial ? "Editar conta" : "Nova conta"} subtitle="Contas organizam onde cada lançamento acontece." onClose={onClose}
       footer={<><div className="spacer" /><button className="btn ghost" onClick={onClose}>Cancelar</button><button className="btn primary" onClick={save}>Salvar</button></>}>
       <div className="field"><label htmlFor="acc-name">Nome</label>
-        <input id="acc-name" className={"input" + (touched && err ? " err" : "")} value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Ex.: Conta PJ do estúdio" />
+        <input id="acc-name" className={"input" + (touched && err ? " err" : "")} value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Ex.: Conta corrente" />
         {touched && err && <span className="err-text">{err}</span>}</div>
       <div className="grid2">
         <div className="field"><label htmlFor="acc-type">Tipo</label>
@@ -141,8 +141,8 @@ export function Settings() {
       actions.replaceAll({ settings: { ...defaultSettings(), profileName: realData.settings.profileName }, txs: [] }, null, "Dados apagados");
   };
   const storeInfo = {
-    cloud: { icon: "cloud", tone: "pos", title: "Nuvem privada (Supabase)", body: "Os dados ficam no seu banco Supabase, protegidos por login. Cada registro pertence ao seu usuário e as regras de segurança do banco impedem que outra conta leia ou altere. Cada lançamento é gravado assim que você confirma." },
-    local: { icon: "drive", tone: "warn", title: "Somente neste navegador", body: "O app está no modo local (sem Supabase configurado), então os dados ficam no armazenamento deste navegador. Eles não sincronizam com outros dispositivos e são perdidos se os dados do site forem limpos. Exporte backups com frequência." },
+    cloud: { icon: "cloud", tone: "pos", title: "Nuvem privada", body: "Seus dados ficam salvos na nuvem, protegidos pelo seu login. Cada registro pertence só à sua conta: ninguém mais consegue ler ou alterar. Cada lançamento é gravado assim que você confirma." },
+    local: { icon: "drive", tone: "warn", title: "Somente neste navegador", body: "Os dados ficam no armazenamento deste navegador. Eles não sincronizam com outros dispositivos e são perdidos se os dados do site forem limpos. Exporte backups com frequência." },
     memory: { icon: "alert", tone: "neg", title: "Sem persistência", body: "O navegador bloqueou o armazenamento local (janela anônima ou dados do site bloqueados). Os dados existem apenas enquanto esta aba estiver aberta. Exporte um backup antes de fechar." },
   }[storeKind] || { icon: "clock", tone: "", title: "Conectando…", body: "" };
 
@@ -157,7 +157,7 @@ export function Settings() {
         <section className="card sec" id="perfil">
           <div className="sec-row"><div><h4>Nome na saudação</h4><p>Aparece no topo do Início.</p></div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <input id="profile-name" className="input" style={{ maxWidth: 320 }} value={name} maxLength={40} onChange={e => setName(e.target.value)} />
+              <input id="profile-name" className="input" style={{ maxWidth: 320 }} value={name} maxLength={40} onChange={e => setName(e.target.value)} placeholder="Como quer ser chamado" />
               <button className="btn" disabled={name.trim() === realData.settings.profileName} onClick={() => actions.saveSettings({ ...realData.settings, profileName: name.trim() }, "Nome atualizado")}>Salvar</button>
             </div></div>
         </section>
@@ -182,7 +182,7 @@ export function Settings() {
 
         <CategoriesSection />
         {storeKind === "cloud" && <section className="card sec" id="conta">
-          <div className="sec-row"><div><h4>Sua conta</h4><p>Login com usuário e senha no Supabase.</p></div>
+          <div className="sec-row"><div><h4>Sua conta</h4><p>Acesso com e-mail ou usuário e senha.</p></div>
             <div className="pref-line"><span style={{ fontSize: 13.5 }}>Conectado como <b>{userLogin || "—"}</b></span>
               <button className="btn" onClick={actions.signOut}>Sair da conta</button></div></div>
           {localData && localData.data && <div className="sec-row"><div><h4>Dados deste navegador</h4><p>Lançamentos salvos aqui antes do login, no modo local.</p></div>
