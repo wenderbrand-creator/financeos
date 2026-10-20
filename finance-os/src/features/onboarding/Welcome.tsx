@@ -19,7 +19,7 @@ import { useApp } from "../../state/AppContext";
 type Draft = {
   name: string;
   accName: string; accType: string; opening: number;
-  usesCard: "yes" | "no" | null; cardName: string; closingDay: number; dueDay: number; limit: number;
+  usesCard: "yes" | "no" | null; cardName: string; closingDay: number; dueDay: number; limit: number; cardColor: string | null;
 };
 const STEPS = ["nome", "aparencia", "conta", "cartao", "comecar"] as const;
 const STEP_LABEL = ["Você", "Aparência", "Conta", "Cartão", "Começar"];
@@ -44,7 +44,7 @@ export function Welcome({ onClose, fallbackName }: { onClose: () => void; fallba
   const [d, setD] = useState<Draft>(() => ({
     name: (settings.profileName || fallbackName || "").trim(),
     accName: bank?.name || "Conta principal", accType: bank?.type || "corrente", opening: bank?.openingCents || 0,
-    usesCard: hasCard ? "no" : null, cardName: "", closingDay: 3, dueDay: 10, limit: 0,
+    usesCard: hasCard ? "no" : null, cardName: "", closingDay: 3, dueDay: 10, limit: 0, cardColor: null,
   }));
   const set = (patch: Partial<Draft>) => setD(p => ({ ...p, ...patch }));
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -93,7 +93,7 @@ export function Welcome({ onClose, fallbackName }: { onClose: () => void; fallba
         ? { ...a, name: d.accName.trim().slice(0, 40) || a.name, type: d.accType, openingCents: d.opening } : a);
       if (d.usesCard === "yes" && d.cardName.trim()) {
         next.accounts = [...next.accounts, { id: uid("acc"), name: d.cardName.trim().slice(0, 30), type: "cartao", openingCents: 0,
-          closingDay: d.closingDay, dueDay: d.dueDay, limitCents: d.limit, color: toneNear(prefs.accent) }];
+          closingDay: d.closingDay, dueDay: d.dueDay, limitCents: d.limit, color: d.cardColor || toneNear(prefs.accent) }];
       }
     }
     const ok = await actions.saveSettings(next, mode === "done" ? (next.profileName ? `Tudo pronto, ${next.profileName.split(" ")[0]}!` : "Tudo pronto!") : null);
@@ -183,6 +183,19 @@ export function Welcome({ onClose, fallbackName }: { onClose: () => void; fallba
           <select id="wl-due" className="select" value={d.dueDay} onChange={e => set({ dueDay: +e.target.value })}>{days.map(x => <option key={x} value={x}>{x}</option>)}</select></div>
       </div>
       <div className="field"><label htmlFor="wl-limit">Limite (opcional)</label><MoneyInput id="wl-limit" value={d.limit} onChange={(v: number) => set({ limit: v })} /></div>
+      <div className="field"><label>Cor do cartão</label>
+        <div className="wl-cardcolor">
+          <div className="swatches" role="radiogroup" aria-label="Cor do cartão">
+            {CARD_TONES.map(([id]) => { const on = (d.cardColor || toneNear(prefs.accent)) === id; return (
+              <button key={id} type="button" role="radio" aria-checked={on} aria-label={`Cor ${id.slice(1)}`} className={"sw-btn" + (on ? " on" : "")}
+                style={{ "--sw": `var(--${id})` }} onClick={() => set({ cardColor: id })}>
+                <Icon name="check" size={14} sw={2.8} style={{ color: "#fff" }} /></button>); })}
+          </div>
+          <div className="wl-pcard wl-pcard-sm" style={{ "--cc": `var(--${d.cardColor || toneNear(prefs.accent)})` }} aria-hidden="true">
+            <span>{d.cardName.trim() || "Seu cartão"}</span><b>R$ 0,00</b><i><em style={{ width: "0%" }} /></i>
+          </div>
+        </div>
+      </div>
       {cardBill && <div className="bill-hint"><Icon name="calendar" size={16} /><span>Uma compra feita hoje entra na fatura de <b>{monthName(cardBill.key)}</b>, que fecha em {D.br(cardBill.close)} e vence em {D.br(cardBill.due)}.</span></div>}
     </div>}
   </>;
