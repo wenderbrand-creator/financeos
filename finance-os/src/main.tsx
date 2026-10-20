@@ -16,6 +16,7 @@ import "./styles/features.css";
 import "./styles/import.css";
 import "./styles/cards.css";
 import "./styles/responsive.css";
+import "./styles/onboarding.css";
 import { Root } from "./Root";
 import { applyPrefs, normPrefs, loadUI } from "./services/prefs";
 
