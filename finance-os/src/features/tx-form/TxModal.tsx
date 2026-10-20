@@ -125,7 +125,7 @@ export function TxModal({ initial, onClose }: any) {
         <div className="field">
           <label htmlFor="tx-desc">Descrição</label>
           <input id="tx-desc" className={"input" + (touched && errors.description ? " err" : "")} value={f.description} maxLength={90}
-            placeholder={f.type === "income" ? "Ex.: Projeto de identidade visual" : "Ex.: Aluguel"} onChange={e => setDesc(e.target.value)} />
+            placeholder={f.type === "income" ? "Ex.: Salário" : "Ex.: Aluguel"} onChange={e => setDesc(e.target.value)} />
           {touched && errors.description && <span className="err-text">{errors.description}</span>}
         </div>
         <div className="grid2">
