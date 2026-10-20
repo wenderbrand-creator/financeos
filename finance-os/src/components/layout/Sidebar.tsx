@@ -6,7 +6,7 @@ import { useApp } from "../../state/AppContext";
 
 export function Sidebar({ page, go, collapsed, setCollapsed, open, storeKind, isDemo }: any) {
   const chip = isDemo ? { icon: "flask", t: "Demonstração", s: "Nada é salvo" }
-    : storeKind === "cloud" ? { icon: "cloud", t: "Nuvem privada", s: "Supabase · só você acessa" }
+    : storeKind === "cloud" ? { icon: "cloud", t: "Nuvem privada", s: "Só você acessa" }
     : storeKind === "local" ? { icon: "drive", t: "Este navegador", s: "Exporte backups" }
     : storeKind === "memory" ? { icon: "alert", t: "Sem persistência", s: "Exporte antes de sair" }
     : { icon: "clock", t: "Conectando", s: "Verificando armazenamento" };
