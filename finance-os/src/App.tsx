@@ -225,7 +225,9 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
   if (!page) return <div className="boot">Carregando Finance OS…</div>;
   const nav = NAV_FLAT.find(n => n.id === page);
   const curMonth = D.monthOf(D.todayISO());
-  const name = (data.settings.profileName || "").trim();
+  // greeting: the name set in Settings; otherwise the login (when it is a username, not an e-mail)
+  const fallbackName = !isDemo && userLogin && !userLogin.includes("@") ? userLogin.charAt(0).toUpperCase() + userLogin.slice(1) : "";
+  const name = ((data.settings.profileName || "").trim() || fallbackName).trim();
   const eyebrow = page === "inicio" ? `${D.greeting()}${name ? ", " + name : ""}` : NAV.find(g => g.items.includes(nav))?.group;
   const showMonth = ["inicio", "visao", "orcamento"].includes(page);
 
