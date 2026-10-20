@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_STORAGE_MODE?: string;
   readonly VITE_ALLOW_SIGNUP?: string;
   readonly VITE_USERNAME_DOMAIN?: string;
+  readonly VITE_IDLE_MINUTES?: string;
 }
 interface ImportMeta { readonly env: ImportMetaEnv }
 interface Document { startViewTransition?: (cb: () => void) => { ready: Promise<void> } }
