@@ -1,3 +1,4 @@
+import { OnceTip } from "../onboarding/Welcome";
 import { useState, useMemo } from "react";
 import { CategoryBars } from "../../components/charts/CategoryBars";
 import { Icon } from "../../components/icons";
@@ -157,6 +158,7 @@ export function CardsPage() {
         <button type="button" className="cc cc-add" onClick={() => setCardModal({})}><Icon name="plus" size={20} /><span>Novo cartão</span></button>
       </div>
 
+      <OnceTip id="cards-limit"><b>Como o limite é contado:</b> uma compra parcelada ocupa o valor total desde o dia da compra. Uma assinatura mensal só ocupa o limite do mês em que é cobrada.</OnceTip>
       <div className="dash">
         <div className="card col-8">
           <div className="bill-head">
