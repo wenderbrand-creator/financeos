@@ -1,31 +1,69 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { App } from "./App";
-import { AuthScreen } from "./features/auth/AuthScreen";
+import { AuthScreen, ResetPasswordScreen } from "./features/auth/AuthScreen";
 import { supabase } from "./services/supabaseClient";
-import { displayLogin } from "./services/auth";
+import { displayLogin, signOut } from "./services/auth";
+import { IDLE_MINUTES } from "./services/config";
 import { BrandMark, Icon } from "./components/icons";
 
 /**
  * Supabase configured → login required, data in the cloud.
- * Supabase NOT configured → shows a setup screen (the app never opens without login by accident).
+ * Supabase NOT configured → shows a neutral screen (the app never opens without login by accident).
  * Local mode (no login, data in this browser) only when VITE_STORAGE_MODE=local is set on purpose.
  */
 export function Root() {
   const [session, setSession] = useState<Session | null | undefined>(supabase ? undefined : null);
+  const [recovering, setRecovering] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s ?? null));
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);
+      if (event === "SIGNED_OUT") setRecovering(false);
+      setSession(s ?? null);
+    });
+    // remove one-time auth codes from the address bar once the e-mail link was processed
+    if (/[?&](code|error_description)=|access_token=/.test(window.location.search + window.location.hash)) {
+      setTimeout(() => window.history.replaceState(null, "", window.location.pathname), 1500);
+    }
     return () => data.subscription.unsubscribe();
   }, []);
+  useIdleSignOut(!!session && !recovering, () => setNotice("Sua sessão foi encerrada após um período sem uso. Entre novamente para continuar."));
+
   if (!supabase) {
     if ((import.meta.env.VITE_STORAGE_MODE as string) === "local") return <App />;
     return <SetupNeeded />;
   }
   if (session === undefined) return <div className="boot">Carregando Finance OS…</div>;
-  if (!session) return <AuthScreen />;
+  if (session && recovering) return <ResetPasswordScreen onDone={() => setRecovering(false)} />;
+  if (!session) return <AuthScreen notice={notice} />;
   return <App key={session.user.id} userId={session.user.id} userLogin={displayLogin(session.user.email)} />;
+}
+
+/** Signs out after IDLE_MINUTES without interaction (0 disables). Activity is shared across tabs. */
+function useIdleSignOut(active: boolean, onExpire: () => void) {
+  const timer = useRef<any>(0);
+  useEffect(() => {
+    if (!active || !IDLE_MINUTES) return;
+    const KEY = "finance-os:last-activity", limit = IDLE_MINUTES * 60_000;
+    const touch = () => { try { localStorage.setItem(KEY, String(Date.now())); } catch { } };
+    const check = async () => {
+      let last = Date.now();
+      try { last = Number(localStorage.getItem(KEY)) || Date.now(); } catch { }
+      if (Date.now() - last >= limit) { clearInterval(timer.current); await signOut("local"); onExpire(); }
+    };
+    let lastTouch = 0;
+    const onAct = () => { const n = Date.now(); if (n - lastTouch > 15_000) { lastTouch = n; touch(); } };
+    touch();
+    const evs = ["pointerdown", "keydown", "scroll", "touchstart"];
+    evs.forEach(e => window.addEventListener(e, onAct, { passive: true }));
+    timer.current = setInterval(check, 30_000);
+    const onVis = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(timer.current); evs.forEach(e => window.removeEventListener(e, onAct)); document.removeEventListener("visibilitychange", onVis); };
+  }, [active]);
 }
 
 /**
