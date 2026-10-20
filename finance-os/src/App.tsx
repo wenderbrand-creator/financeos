@@ -204,7 +204,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
       return run(s => s.deleteMany(ids), "Importação desfeita");
     },
     signOut: async () => {
-      if (await confirm({ title: "Sair da conta", body: "Você vai precisar do usuário e da senha para entrar de novo. Seus dados continuam salvos na nuvem.", confirmLabel: "Sair", tone: "primary" })) await signOut();
+      if (await confirm({ title: "Sair da conta", body: "Você vai precisar do e-mail e da senha para entrar de novo. Seus dados continuam salvos na nuvem.", confirmLabel: "Sair", tone: "primary" })) await signOut();
     },
     /** Re-reads the cloud and compares with what was sent: count, and totals per month and per account. */
     verifyData: async (expected) => {
