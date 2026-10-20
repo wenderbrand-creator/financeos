@@ -10,15 +10,15 @@ export function buildDemoData() {
   const today = D.todayISO(), cur = D.monthOf(today);
   const settings = { schemaVersion: SCHEMA_VERSION, profileName: "Visitante", categories: defaultCategories(), accounts: [
     { id: "d-pessoal", name: "Conta pessoal", type: "corrente", openingCents: 1250000 },
-    { id: "d-pj", name: "Conta PJ do estúdio", type: "pj", openingCents: 820000 },
+    { id: "d-pj", name: "Conta PJ", type: "pj", openingCents: 820000 },
     { id: "d-carteira", name: "Carteira", type: "carteira", openingCents: 30000 },
     { id: "d-cartao", name: "Cartão de crédito", type: "cartao", openingCents: 0, closingDay: 3, dueDay: 10, limitCents: 800000, color: "c1" },
   ]};
   const plan = [
     // [description, type, category, account, day, [values in reais for months -5..+1]]
     ["Pró-labore", "income", "salario", "d-pessoal", 5, [9800, 9800, 9800, 9800, 9800, 9800, 9800]],
-    ["Projeto de identidade visual", "income", "freelance", "d-pj", 12, [4200, 0, 6800, 3500, 5100, 7400, 2800]],
-    ["Venda de templates", "income", "vendas", "d-pj", 22, [890, 1240, 0, 760, 1530, 980, 0]],
+    ["Serviços prestados", "income", "freelance", "d-pj", 12, [4200, 0, 6800, 3500, 5100, 7400, 2800]],
+    ["Vendas online", "income", "vendas", "d-pj", 22, [890, 1240, 0, 760, 1530, 980, 0]],
     ["Rendimento CDB", "income", "rendimentos", "d-pessoal", 28, [212, 218, 225, 231, 236, 241, 0]],
     ["Aluguel", "expense", "moradia", "d-pessoal", 10, [2450, 2450, 2450, 2450, 2450, 2450, 2450]],
     ["Condomínio", "expense", "moradia", "d-pessoal", 10, [680, 680, 680, 695, 695, 695, 695]],
@@ -28,8 +28,8 @@ export function buildDemoData() {
     ["Supermercado", "expense", "alimentacao", "d-pessoal", 8, [1180, 1320, 1090, 1410, 1265, 1340, 0]],
     ["Restaurantes e delivery", "expense", "alimentacao", "d-cartao", 18, [420, 380, 510, 465, 398, 452, 0]],
     ["Combustível", "expense", "transporte", "d-cartao", 9, [420, 390, 455, 410, 470, 430, 0]],
-    ["Softwares de design", "expense", "assinaturas", "d-cartao", 7, [189, 189, 189, 189, 214, 214, 214]],
-    ["Curso de motion design", "expense", "educacao", "d-pessoal", 25, [297, 297, 297, 297, 297, 297, 297]],
+    ["Apps e softwares", "expense", "assinaturas", "d-cartao", 7, [189, 189, 189, 189, 214, 214, 214]],
+    ["Curso online", "expense", "educacao", "d-pessoal", 25, [297, 297, 297, 297, 297, 297, 297]],
     ["Lazer e passeios", "expense", "lazer", "d-cartao", 21, [320, 540, 210, 880, 460, 390, 0]],
     ["DAS — Simples Nacional", "expense", "impostos", "d-pj", 20, [412, 236, 498, 318, 389, 512, 380]],
   ];
