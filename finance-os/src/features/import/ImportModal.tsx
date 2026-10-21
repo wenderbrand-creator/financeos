@@ -13,12 +13,14 @@ import { useApp } from "../../state/AppContext";
 
 /* ---------- the modal ---------- */
 export const LS_IMPORT = "finance-os:import";
-export function ImportModal({ onClose }: any) {
+export function ImportModal({ onClose, cardId }: any) {
   const { data, actions, isDemo, go, setMonth } = useApp();
   const accounts = data.settings.accounts;
   const remembered = (() => { try { return JSON.parse(localStorage.getItem(LS_IMPORT) || "{}"); } catch { return {}; } })();
   const [step, setStep] = useState("file");
-  const [accountId, setAccountId] = useState(() => accounts.some(a => a.id === remembered.bank) ? remembered.bank : accounts[0]?.id);
+  // opened from the Cards page: the destination is that card, whatever the file looks like
+  const fixedCard = cardId ? accounts.find(a => a.id === cardId && a.type === "cartao") : null;
+  const [accountId, setAccountId] = useState(() => fixedCard ? fixedCard.id : accounts.some(a => a.id === remembered.bank) ? remembered.bank : accounts[0]?.id);
   const [file, setFile] = useState(null);        // { name, parsed }
   const [error, setError] = useState(null);
   const [drag, setDrag] = useState(false);
@@ -46,7 +48,7 @@ export function ImportModal({ onClose }: any) {
       if (isOfx && !parsed.entries.length) { setError("O arquivo OFX não tem lançamentos no período exportado."); return; }
       const kind = parsed.format === "ofx" ? parsed.kind : parsed.looksCard ? "card" : "bank";
       // pick the account that matches what the file is
-      const pick = kind === "card"
+      const pick = fixedCard ? fixedCard : kind === "card"
         ? (cards.find(a => a.id === remembered.card) || cards.find(a => a.id === accountId) || cards[0])
         : (accounts.find(a => a.id === remembered.bank && a.type !== "cartao") || (account && account.type !== "cartao" ? account : accounts.find(a => a.type !== "cartao")));
       if (pick) setAccountId(pick.id);
@@ -118,8 +120,8 @@ export function ImportModal({ onClose }: any) {
         onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}>
         <input ref={inputRef} type="file" accept=".ofx,.qfx,.csv,.txt,text/csv" hidden onChange={e => { handleFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
         <div className="dz-ico"><Icon name="upload" size={22} /></div>
-        <b>Arraste o arquivo do banco aqui</b>
-        <span>ou <u>escolha no computador</u> · OFX ou CSV, extrato da conta ou fatura do cartão</span>
+        <b>{fixedCard ? "Arraste a fatura do cartão aqui" : "Arraste o arquivo do banco aqui"}</b>
+        <span>ou <u>escolha no computador</u> · {fixedCard ? "OFX ou CSV da fatura, exportado pelo app do banco" : "OFX ou CSV, extrato da conta ou fatura do cartão"}</span>
       </label>
       {error && <div className="notice neg"><Icon name="alert" size={18} /><div>{error}</div></div>}
       <div className="imp-facts">
@@ -240,5 +242,8 @@ export function ImportModal({ onClose }: any) {
       <button className="btn primary" onClick={() => { setMonth(result.lastMonth); go("orcamento"); onClose(); }}>Ver no Orçamento</button>
     </>;
   }
-  return <Modal xl title="Importar extrato ou fatura" subtitle={isDemo ? "Modo demonstração: a importação entra só nos dados fictícios." : "Traga os lançamentos do app do banco ou do cartão de crédito."} onClose={onClose} footer={footer}>{body}</Modal>;
+  const title = fixedCard ? `Importar fatura · ${fixedCard.name}` : "Importar extrato ou fatura";
+  const subtitle = isDemo ? "Modo demonstração: a importação entra só nos dados fictícios."
+    : fixedCard ? "Traga as compras da fatura exportada pelo app do banco. Cada compra cai na fatura certa pela data." : "Traga os lançamentos do app do banco ou do cartão de crédito.";
+  return <Modal xl title={title} subtitle={subtitle} onClose={onClose} footer={footer}>{body}</Modal>;
 }
