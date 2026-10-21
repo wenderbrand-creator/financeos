@@ -1,3 +1,4 @@
+import { reauthenticate } from "../../services/auth";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Icon } from "../../components/icons";
 import { Amount } from "../../components/ui/Amount";
@@ -61,7 +62,15 @@ export function ImportDialog({ parsed, onClose, title = "Restaurar backup" }: an
   const [ack, setAck] = useState(false);
   const [progress, setProgress] = useState(null);
   const [check, setCheck] = useState(null);
+  const [pw, setPw] = useState("");
+  const [pwErr, setPwErr] = useState<string | null>(null);
+  const needPw = storeKind === "cloud";
   const run = async () => {
+    if (needPw) {
+      setPwErr(null);
+      const err = await reauthenticate(pw);
+      if (err) { setPwErr(err); setPw(""); return; }
+    }
     setProgress(0);
     const ok = await actions.replaceAll(parsed.data, setProgress, null);
     if (!ok) { setProgress(null); return; }
@@ -80,7 +89,7 @@ export function ImportDialog({ parsed, onClose, title = "Restaurar backup" }: an
   return (
     <Modal title={title} subtitle="O arquivo foi validado. Confira antes de substituir." onClose={() => progress === null && onClose()}
       footer={<><div className="spacer" /><button className="btn ghost" onClick={onClose} disabled={progress !== null}>Cancelar</button>
-        <button className="btn danger" disabled={!ack || progress !== null} onClick={run}>{progress !== null ? `Restaurando… ${Math.round(progress * 100)}%` : "Substituir dados"}</button></>}>
+        <button className="btn danger" disabled={!ack || progress !== null || (needPw && !pw)} onClick={run}>{progress !== null ? `Restaurando… ${Math.round(progress * 100)}%` : "Substituir dados"}</button></>}>
       <dl className="kv">
         <dt>Lançamentos</dt><dd className="num">{m.count}</dd>
         <dt>Contas</dt><dd className="num">{m.accounts}</dd>
@@ -90,6 +99,9 @@ export function ImportDialog({ parsed, onClose, title = "Restaurar backup" }: an
       <div className="notice warn"><Icon name="alert" size={18} /><div>Seus dados atuais ({data.txs.length} lançamentos e {data.settings.accounts.length} contas) serão substituídos pelo conteúdo do arquivo. Exporte um backup antes se quiser guardá-los.</div></div>
       {progress !== null && <div className="progress"><i style={{ width: `${progress * 100}%` }} /></div>}
       <label className="check"><input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} />Entendo que os dados atuais serão substituídos.</label>
+      {needPw && <div className="field"><label htmlFor="restore-pw">Sua senha</label>
+        <input id="restore-pw" type="password" className={"input" + (pwErr ? " err" : "")} value={pw} onChange={e => setPw(e.target.value)} autoComplete="current-password" />
+        {pwErr ? <span className="err-text">{pwErr}</span> : <span className="hint">Por segurança, confirme sua senha para substituir os dados.</span>}</div>}
     </Modal>
   );
 }
@@ -137,7 +149,7 @@ export function Settings() {
       actions.saveSettings({ ...realData.settings, accounts: realData.settings.accounts.filter(x => x.id !== a.id) }, "Conta excluída");
   };
   const wipe = async () => {
-    if (await actions.confirm({ title: "Apagar todos os dados", body: `Todos os ${realData.txs.length} lançamentos e as contas serão apagados. Esta ação não pode ser desfeita.`, confirmLabel: "Apagar tudo", requireText: "APAGAR" }))
+    if (await actions.confirm({ title: "Apagar todos os dados", body: `Todos os ${realData.txs.length} lançamentos e as contas serão apagados. Esta ação não pode ser desfeita.`, confirmLabel: "Apagar tudo", requireText: "APAGAR", requirePassword: storeKind === "cloud" }))
       actions.replaceAll({ settings: { ...defaultSettings(), profileName: realData.settings.profileName }, txs: [] }, null, "Dados apagados");
   };
   const storeInfo = {
