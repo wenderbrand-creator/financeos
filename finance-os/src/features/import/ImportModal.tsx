@@ -9,6 +9,8 @@ import { uid } from "../../domain/ids";
 import { Money } from "../../domain/money";
 import { buildImportRows, rowsToTransactions } from "../../import/categorizer";
 import { MAX_IMPORT, decodeFile, parseOFX, parseCSV, csvToEntries } from "../../import/parsers";
+import { parsePdfLines, extractPdfLines } from "../../import/pdf";
+import { CardMath } from "../../domain/cards";
 import { useApp } from "../../state/AppContext";
 
 /* ---------- the modal ---------- */
@@ -31,6 +33,7 @@ export function ImportModal({ onClose, cardId }: any) {
   const [progress, setProgress] = useState(null);
   const [result, setResult] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [busyReading, setBusyReading] = useState(false);
   const inputRef = useRef(null);
   const account = accounts.find(a => a.id === accountId) || accounts[0];
   const cards = accounts.filter(a => a.type === "cartao");
@@ -41,7 +44,10 @@ export function ImportModal({ onClose, cardId }: any) {
     if (!f) return;
     if (f.size > 15 * 1024 * 1024) { setError("Arquivo grande demais (máximo 15 MB)."); return; }
     try {
-      const text = decodeFile(await f.arrayBuffer());
+      const buf = await f.arrayBuffer();
+      const head = new Uint8Array(buf.slice(0, 5));
+      if (/\.pdf$/i.test(f.name) || String.fromCharCode(...head) === "%PDF-") return await handlePdf(f, buf);
+      const text = decodeFile(buf);
       const isOfx = /\.(ofx|qfx)$/i.test(f.name) || /<OFX>|OFXHEADER/i.test(text.slice(0, 2000));
       const parsed = isOfx ? parseOFX(text) : parseCSV(text);
       if (parsed.error) { setError(parsed.error); return; }
@@ -59,8 +65,50 @@ export function ImportModal({ onClose, cardId }: any) {
     } catch { setError("Não foi possível ler este arquivo. Use um OFX ou CSV exportado pelo banco."); }
   };
 
+  // PDF: read the text in the browser, then parse with the sign rules of the destination (bill or statement)
+  const handlePdf = async (f, buf) => {
+    setBusyReading(true);
+    try {
+      const lines = await extractPdfLines(buf);
+      const probe = parsePdfLines(lines);
+      if (!probe.entries.length) {
+        setError(lines.length < 3
+          ? "Este PDF não tem texto para ler: parece uma imagem ou digitalização. Baixe o PDF direto do app do banco, ou exporte em OFX/CSV."
+          : "Não encontrei lançamentos neste PDF. Confira se é o extrato da conta ou a fatura do cartão, baixados do app do banco.");
+        return;
+      }
+      const kind = probe.kind;
+      const pick = fixedCard ? fixedCard : kind === "card"
+        ? (cards.find(a => a.id === remembered.card) || cards.find(a => a.id === accountId) || cards[0])
+        : (accounts.find(a => a.id === remembered.bank && a.type !== "cartao") || (account && account.type !== "cartao" ? account : accounts.find(a => a.type !== "cartao")));
+      if (pick) setAccountId(pick.id);
+      setOverrides({}); setFilter("all"); setMap(null);
+      setFile({ name: f.name, parsed: { format: "pdf", lines, dueDate: probe.dueDate }, kind });
+      setStep("review");
+    } catch (e: any) {
+      setError(e?.name === "PasswordException" ? "Este PDF está protegido por senha. Abra no app do banco e baixe uma versão sem senha, ou exporte em OFX/CSV."
+        : e?.code === "too_many_pages" ? "PDF muito grande (mais de 60 páginas). Exporte um período menor."
+        : "Não foi possível ler este PDF. Tente baixar de novo no app do banco, ou use OFX/CSV.");
+    } finally { setBusyReading(false); }
+  };
+
   const parsedEntries = useMemo(() => {
     if (!file) return { entries: [], bad: 0, balance: 0 };
+    if (file.parsed.format === "pdf") {
+      const isCard = account?.type === "cartao";
+      const r = parsePdfLines(file.parsed.lines, { card: isCard });
+      let entries = r.entries;
+      // card bill with a due date: every line belongs to THAT bill (installments keep the original purchase date in the PDF)
+      if (isCard && r.dueDate) {
+        const w = CardMath.dates(account, r.dueDate.slice(0, 7));
+        const last = (() => { const [y, m, d] = w.close.split("-").map(Number); const t = new Date(y, m - 1, d - 1); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; })();
+        entries = entries.map(e => {
+          const date = e.date < w.open ? w.open : e.date > last ? last : e.date;
+          return date === e.date ? e : { ...e, date, description: e.cents < 0 ? `${e.description} · compra ${D.br(e.date).slice(0, 5)}` : e.description };
+        });
+      }
+      return { entries, bad: r.bad, balance: r.balance };
+    }
     if (file.parsed.format === "ofx") return { entries: file.parsed.entries, bad: file.parsed.bad, balance: 0 };
     if (!map || map.date < 0 || (map.amount < 0 && map.credit < 0 && map.debit < 0)) return { entries: [], bad: 0, balance: 0, unmapped: true };
     return csvToEntries(file.parsed, map, positiveIncome);
@@ -118,21 +166,21 @@ export function ImportModal({ onClose, cardId }: any) {
       <Steps />
       <label className={"dropzone" + (drag ? " drag" : "")} onDragOver={e => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
         onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}>
-        <input ref={inputRef} type="file" accept=".ofx,.qfx,.csv,.txt,text/csv" hidden onChange={e => { handleFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+        <input ref={inputRef} type="file" accept=".ofx,.qfx,.csv,.txt,.pdf,text/csv,application/pdf" hidden onChange={e => { handleFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
         <div className="dz-ico"><Icon name="upload" size={22} /></div>
         <b>{fixedCard ? "Arraste a fatura do cartão aqui" : "Arraste o arquivo do banco aqui"}</b>
-        <span>ou <u>escolha no computador</u> · {fixedCard ? "OFX ou CSV da fatura, exportado pelo app do banco" : "OFX ou CSV, extrato da conta ou fatura do cartão"}</span>
+        <span>ou <u>escolha no computador</u> · {busyReading ? "Lendo o PDF…" : fixedCard ? "PDF, OFX ou CSV da fatura, baixado do app do banco" : "PDF, OFX ou CSV · extrato da conta ou fatura do cartão"}</span>
       </label>
       {error && <div className="notice neg"><Icon name="alert" size={18} /><div>{error}</div></div>}
       <div className="imp-facts">
-        <div><Icon name="search" size={16} /><span><b>Detecta sozinho</b> se é extrato ou fatura, as colunas e o formato dos valores.</span></div>
+        <div><Icon name="search" size={16} /><span><b>Detecta sozinho</b> se é extrato ou fatura, o que é entrada e o que é saída.</span></div>
         <div><Icon name="sliders" size={16} /><span><b>Você revisa antes</b>: nada é gravado até confirmar.</span></div>
         <div><Icon name="repeat" size={16} /><span><b>Sem duplicar</b>: reimportar o mesmo período não repete lançamentos.</span></div>
       </div>
       <button type="button" className="link-btn" style={{ alignSelf: "flex-start" }} onClick={() => setShowHelp(v => !v)}>{showHelp ? "Ocultar ajuda" : "Como exportar do meu banco?"}</button>
       {showHelp && <div className="prose imp-help" style={{ padding: 0 }}>
-        <p>No app ou internet banking, abra o <b>extrato</b> da conta ou a <b>fatura</b> do cartão e procure por <b>Exportar</b>, <b>Salvar como</b> ou <b>Baixar</b>. Prefira <b>OFX</b> (às vezes chamado de “Money” ou “Quicken”): ele traz identificadores que evitam duplicados. Se só houver <b>CSV</b> ou planilha salva como CSV, também funciona.</p>
-        <p style={{ marginTop: 8 }}>PDF e foto de fatura não são lidos: eles não trazem os dados em formato de tabela.</p>
+        <p>No app ou internet banking, abra o <b>extrato</b> da conta ou a <b>fatura</b> do cartão e procure por <b>Exportar</b>, <b>Salvar como</b> ou <b>Baixar</b>. O <b>PDF</b> baixado do app funciona na maioria dos bancos. Se houver <b>OFX</b> (às vezes chamado de “Money” ou “Quicken”) ou <b>CSV</b>, eles são ainda mais precisos.</p>
+        <p style={{ marginTop: 8 }}>O PDF é lido aqui no seu aparelho e não é enviado a nenhum servidor. PDF escaneado ou foto de tela ainda não são lidos.</p>
       </div>}
     </>;
     footer = <><div className="spacer" /><button className="btn ghost" onClick={onClose}>Cancelar</button><button className="btn primary" onClick={() => inputRef.current && inputRef.current.click()}><Icon name="upload" size={16} />Escolher arquivo</button></>;
@@ -150,7 +198,8 @@ export function ImportModal({ onClose, cardId }: any) {
       </div>
       {file.kind === "card" && !cards.length && <div className="notice warn"><Icon name="wallet" size={18} /><div style={{ flex: 1 }}>Este arquivo parece uma fatura de cartão. Crie uma conta de cartão para separar os gastos do cartão do saldo da conta corrente.
         <div style={{ marginTop: 8 }}><button className="btn sm" onClick={createCard} disabled={isDemo}><Icon name="plus" size={14} />Criar conta “Cartão de crédito”</button></div></div></div>}
-      {kindMismatch && (file.kind !== "card" || cards.length > 0) && <div className="notice"><Icon name="info" size={18} /><div>O arquivo parece {file.kind === "card" ? "uma fatura de cartão" : "um extrato de conta"}, mas a conta escolhida é {account.type === "cartao" ? "um cartão" : "uma conta comum"}. Confira o destino acima.</div></div>}
+      {kindMismatch && (file.kind !== "card" || cards.length > 0) && <div className="notice"><Icon name="info" size={18} /><div>O arquivo parece {file.kind === "card" ? "uma fatura de cartão" : "um extrato de conta"}, mas a conta escolhida é {account.type === "cartao" ? "um cartão" : "uma conta comum"}. Confira o destino acima.
+        {(() => { const alt = file.kind === "card" ? cards[0] : accounts.find(a => a.type !== "cartao"); return alt && alt.id !== account.id ? <div style={{ marginTop: 8 }}><button type="button" className="btn sm" onClick={() => { setAccountId(alt.id); setOverrides({}); if (file.parsed.format === "csv") setPositiveIncome(alt.type !== "cartao"); }}>Importar em “{alt.name}”</button></div> : null; })()}</div></div>}
       {isCSV && map && <div className="imp-map">
         <span className="eyebrow">Colunas</span>
         {[["date", "Data"], ["desc", "Descrição"], ...(map.amount >= 0 || (map.credit < 0 && map.debit < 0) ? [["amount", "Valor"]] : [["credit", "Entradas"], ["debit", "Saídas"]])].map(([k, l]) =>
