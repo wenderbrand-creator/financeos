@@ -188,7 +188,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
       }
       return ok;
     },
-    openImport: () => setModal({ kind: "import" }),
+    openImport: (cardId?: string) => setModal({ kind: "import", cardId: typeof cardId === "string" ? cardId : undefined }),
     openWelcome: () => { if (demoRef.current) { demoRef.current = null; setDemo(null); } setWelcomeClosed(false); setWelcomeForced(true); },
     goCards: (billKey) => { setCardBill(billKey || null); go("cartoes"); },
     openPayBill: (cardId, key) => setModal({ kind: "paybill", cardId, key }),
@@ -280,7 +280,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
         </main>
       </div>
       {modal && modal.kind === "tx" && <TxModal initial={modal.tx} onClose={() => setModal(null)} />}
-      {modal && modal.kind === "import" && <ImportModal onClose={() => setModal(null)} />}
+      {modal && modal.kind === "import" && <ImportModal cardId={modal.cardId} onClose={() => setModal(null)} />}
       {showWelcome && <Welcome fallbackName={fallbackName} onClose={() => { setWelcomeClosed(true); setWelcomeForced(false); }} />}
       {modal && modal.kind === "paybill" && <PayBillModal cardId={modal.cardId} billKey={modal.key} onClose={() => setModal(null)} />}
       {confirmReq && <ConfirmDialog {...confirmReq} onResolve={(v) => { confirmReq.res(v); setConfirmReq(null); }} />}
