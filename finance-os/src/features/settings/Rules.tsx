@@ -25,7 +25,7 @@ export function RulesSection() {
       <div className="sec-row"><div><h4>Regras de categoria</h4><p>Quando a descrição tiver o texto, o lançamento já vem com a categoria certa, na importação e no novo lançamento. Também dá para criar uma regra ao corrigir a categoria durante a importação.</p></div>
         <div>
           <div className="rule-form">
-            <input className={"input" + (touched && clean.length < 2 ? " err" : "")} aria-label="Texto da descrição" placeholder="Ex.: livepix, mycon, uber" value={match} maxLength={40} onChange={e => setMatch(e.target.value)} onKeyDown={e => { if (e.key === "Enter") add(); }} />
+            <input className={"input" + (touched && clean.length < 2 ? " err" : "")} aria-label="Texto da descrição" placeholder="Texto da descrição, ex.: padaria" value={match} maxLength={40} onChange={e => setMatch(e.target.value)} onKeyDown={e => { if (e.key === "Enter") add(); }} />
             <select className={"select" + (touched && !type ? " err" : "")} aria-label="Categoria" value={cat} onChange={e => setCat(e.target.value)}>
               <option value="">Categoria…</option>
               <optgroup label="Despesas">{CATS.expense.filter(c => !c.archived).map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>

@@ -61,9 +61,9 @@ function Privacy() {
     <h2>Seus direitos</h2>
     <p>Você pode, a qualquer momento:</p>
     <ul>
-      <li><b>acessar e levar seus dados:</b> em Configurações → Dados e backup → Exportar backup;</li>
+      <li><b>acessar e levar seus dados:</b> em Configurações → Dados → Exportar backup;</li>
       <li><b>corrigir:</b> editando os próprios lançamentos e configurações;</li>
-      <li><b>excluir a conta e todos os dados:</b> em Configurações → Sua conta → Excluir conta e dados;</li>
+      <li><b>excluir a conta e todos os dados:</b> em Configurações → Conta → Excluir conta e dados;</li>
       <li>pedir informações sobre o tratamento, revogar consentimentos e apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD).</li>
     </ul>
     <p>Pedidos que não possam ser feitos pelo próprio app podem ser enviados para <Contact />.</p>
@@ -111,7 +111,7 @@ function Terms() {
     <p>Se houver planos pagos, preço, forma de cobrança e cancelamento serão informados com clareza antes da contratação.</p>
 
     <h2>Encerramento</h2>
-    <p>Você pode excluir sua conta quando quiser em Configurações → Sua conta. Podemos encerrar contas que violem estes termos, com aviso quando possível.</p>
+    <p>Você pode excluir sua conta quando quiser em Configurações → Conta. Podemos encerrar contas que violem estes termos, com aviso quando possível.</p>
 
     <h2>Mudanças</h2>
     <p>Podemos atualizar estes termos. Mudanças relevantes serão avisadas no app com antecedência.</p>

@@ -5,7 +5,7 @@ export const NAV = [
     { id: "orcamento", label: "Lançamentos", icon: "arrows", ready: true },
     { id: "cartoes", label: "Cartões de crédito", icon: "card", ready: true },
   ]},
-  { group: "Conta", items: [
+  { group: "Geral", items: [
     { id: "config", label: "Configurações", icon: "sliders", ready: true },
     { id: "ajuda", label: "Ajuda", icon: "help", ready: true },
   ]},

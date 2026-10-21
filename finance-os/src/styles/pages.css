@@ -130,7 +130,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px;min-width:720px}
 .plan-list span{font-size:12.5px;color:var(--text-3)}
 
 /* ===== settings / help ===== */
-.settings{display:grid;grid-template-columns:220px minmax(0,1fr);gap:32px;align-items:start}
+.settings{display:flex;flex-direction:column;gap:20px;max-width:1080px}
 .settings-nav{position:sticky;top:120px;display:flex;flex-direction:column;gap:2px}
 .settings-nav a{padding:8px 10px;border-radius:var(--r-sm);color:var(--text-2);text-decoration:none;font-size:13.5px;font-weight:500}
 .settings-nav a:hover{background:var(--surface);color:var(--text)}
@@ -231,3 +231,22 @@ textarea.input{height:200px;padding:10px 12px;font-family:var(--mono);font-size:
 .big-row small{color:var(--text-3);font-size:11.5px;margin-left:2px}
 .chk-inline{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--text-2);white-space:nowrap;cursor:pointer}
 .chk-inline input{accent-color:var(--accent);width:15px;height:15px}
+
+/* settings tabs */
+.set-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.set-tabs::-webkit-scrollbar{display:none}
+.set-tabs button{position:relative;border:0;background:none;padding:10px 14px 12px;font-size:14px;font-weight:550;color:var(--text-2);cursor:pointer;white-space:nowrap;border-radius:8px 8px 0 0;transition:color .2s}
+.set-tabs button:hover{color:var(--text)}
+.set-tabs button.on{color:var(--text)}
+.set-tabs button.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)}
+.set-tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.set-panel{display:flex;flex-direction:column;gap:20px;min-width:0}
+.danger-zone{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:18px 22px;border:1px solid var(--line);border-radius:var(--r-lg);margin-top:12px}
+.danger-zone h4{margin:0 0 4px;font-size:14px;font-weight:600}
+.danger-zone p{margin:0;font-size:13px;color:var(--text-3);max-width:62ch;line-height:1.5}
+.danger-zone .btn{border:1px solid var(--neg-soft)}
+.store-line{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;color:var(--text-2);line-height:1.5;flex-wrap:wrap}
+.store-line svg{margin-top:2px;flex-shrink:0}
+.cat-admin{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+.cat-admin-row:nth-child(2){border-top:0}
+@media (max-width:900px){.cat-admin{grid-template-columns:1fr}.cat-admin-row:nth-child(2){border-top:1px solid var(--line)}}

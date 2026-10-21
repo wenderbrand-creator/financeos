@@ -33,6 +33,7 @@ export function CategoriesSection() {
   const { realData, actions } = useApp();
   const [type, setType] = useState("expense");
   const [modal, setModal] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
   const cats = realData.settings.categories[type];
   const counts = useMemo(() => { const m = {}; for (const t of realData.txs) m[t.category] = (m[t.category] || 0) + 1; return m; }, [realData.txs]);
   const activeCount = cats.filter(c => !c.archived).length;
@@ -49,7 +50,7 @@ export function CategoriesSection() {
         <button className="btn sm" style={{ marginTop: 12 }} onClick={() => setModal({})}><Icon name="plus" size={14} />Nova categoria</button></div>
         <div>
           <div style={{ marginBottom: 12 }}><Seg value={type} onChange={setType} options={[{ value: "expense", label: "Despesas", count: realData.settings.categories.expense.length }, { value: "income", label: "Receitas", count: realData.settings.categories.income.length }]} /></div>
-          <div className="cat-admin">{cats.map(c => { const n = counts[c.id] || 0; return (
+          <div className="cat-admin">{cats.filter(c => showArchived || !c.archived).map(c => { const n = counts[c.id] || 0; return (
             <div className={"cat-admin-row" + (c.archived ? " archived" : "")} key={c.id}>
               <span className="d" style={{ background: `var(--${c.color})` }} />
               <div style={{ minWidth: 0 }}><b>{c.label}</b><span>{n} lançamento{n === 1 ? "" : "s"}{c.archived ? " · arquivada" : ""}</span></div>
@@ -59,6 +60,7 @@ export function CategoriesSection() {
                 <button className="btn ghost icon sm" aria-label={`Excluir ${c.label}`} title={n ? "Categoria em uso: arquive em vez de excluir" : "Excluir"} disabled={n > 0 || (!c.archived && activeCount < 2)} onClick={() => remove(c)}><Icon name="trash" size={15} /></button>
               </div>
             </div>); })}</div>
+          {cats.some(c => c.archived) && <button type="button" className="link-btn" style={{ marginTop: 8 }} onClick={() => setShowArchived(v => !v)}>{showArchived ? "Esconder arquivadas" : `Mostrar arquivadas (${cats.filter(c => c.archived).length})`}</button>}
         </div></div>
       {modal && <CategoryModal type={type} initial={modal.id ? modal : null} existing={cats} onSave={upsert} onClose={() => setModal(null)} />}
     </section>

@@ -34,7 +34,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
   const [prefs, setPrefsState] = useState(() => normPrefs(ui0.prefs));
   // routing: /inicio, /orcamento, /cartoes … (old "#orcamento" links are redirected)
   const location = useLocation(), navigate = useNavigate();
-  const pathId = location.pathname.replace(/^\/+|\/+$/g, "");
+  const pathId = location.pathname.replace(/^\/+|\/+$/g, "").split("/")[0]; // "/config/dados" → page "config", tab "dados"
   const page = NAV_FLAT.some(n => n.id === pathId) ? pathId : null;
   useEffect(() => {
     if (page) return;

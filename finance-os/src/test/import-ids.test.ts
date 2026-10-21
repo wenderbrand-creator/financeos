@@ -4,7 +4,7 @@ import { buildImportRows } from "../import/categorizer";
 
 describe("importação: documento repetido no extrato", () => {
   it("gera um importId diferente para cada linha, mesmo com o mesmo número de documento", () => {
-    const text = "Data;Descricao;Documento;Valor\n13/10/2026;PAGAMENTO PIX LIVEPIX;4319;-100,00\n13/10/2026;PAGAMENTO PIX LIVEPIX;4319;-30,00\n13/10/2026;PAGAMENTO PIX LIVEPIX;4319;-50,00\n01/10/2026;CHEQUE ESPECIAL-IOF;4319;-1,58\n";
+    const text = "Data;Descricao;Documento;Valor\n13/10/2026;PAGAMENTO PIX LOJA CENTRAL;4319;-100,00\n13/10/2026;PAGAMENTO PIX LOJA CENTRAL;4319;-30,00\n13/10/2026;PAGAMENTO PIX LOJA CENTRAL;4319;-50,00\n01/10/2026;CHEQUE ESPECIAL-IOF;4319;-1,58\n";
     const csv = parseCSV(text);
     const map = autoMapCSV(csv.headers, csv.records);
     const { entries } = csvToEntries(csv, map, true);

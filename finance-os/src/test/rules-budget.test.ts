@@ -4,16 +4,16 @@ import { normalizeRules, normalizeBudgets } from "../domain/model";
 import { budgetRows, averageSpend } from "../features/budget/Budget";
 
 describe("regras de categoria", () => {
-  const rules = normalizeRules([{ id: "r1", type: "expense", match: "livepix", category: "lazer" }, { type: "expense", match: "x", category: "lazer" }, { type: "bad", match: "abc", category: "lazer" }]);
+  const rules = normalizeRules([{ id: "r1", type: "expense", match: "loja central", category: "lazer" }, { type: "expense", match: "x", category: "lazer" }, { type: "bad", match: "abc", category: "lazer" }]);
   it("descarta regras inválidas", () => { expect(rules.length).toBe(1); });
   it("a regra vence o histórico e as palavras-chave", () => {
-    const hist = [{ id: "t1", type: "expense", description: "PAGAMENTO PIX - 431 LIVEPIX", category: "outros-d", updatedAt: 1 }];
-    const cat = makeCategorizer(hist, rules)("PAGAMENTO PIX - 43192126000118 LIVEPIX", "expense");
+    const hist = [{ id: "t1", type: "expense", description: "PAGAMENTO PIX - 431 LOJA CENTRAL", category: "outros-d", updatedAt: 1 }];
+    const cat = makeCategorizer(hist, rules)("PAGAMENTO PIX - 43192126000118 LOJA CENTRAL", "expense");
     expect(cat).toMatchObject({ id: "lazer", rule: true });
   });
   it("na importação, linhas parecidas têm a mesma chave", () => {
     const acc = { id: "a", name: "C", type: "corrente" };
-    const rows = buildImportRows([{ date: "2026-10-13", cents: -5000, description: "PAGAMENTO PIX - 431 LIVEPIX" }, { date: "2026-10-14", cents: -3000, description: "PAGAMENTO PIX - 999 LIVEPIX" }], acc, [], [acc], rules);
+    const rows = buildImportRows([{ date: "2026-10-13", cents: -5000, description: "PAGAMENTO PIX - 431 LOJA CENTRAL" }, { date: "2026-10-14", cents: -3000, description: "PAGAMENTO PIX - 999 LOJA CENTRAL" }], acc, [], [acc], rules);
     expect(rows[0].nd).toBe(rows[1].nd);
     expect(rows.every((r: any) => r.category === "lazer" && r.rule)).toBe(true);
   });

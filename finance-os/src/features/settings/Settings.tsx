@@ -1,5 +1,6 @@
 import { reauthenticate } from "../../services/auth";
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../../components/icons";
 import { Amount } from "../../components/ui/Amount";
 import { Modal } from "../../components/ui/Modal";
@@ -122,6 +123,8 @@ export function ExportFallback({ json, onClose }: any) {
 
 export function Settings() {
   const { realData, actions, storeKind, isDemo, saveState, userLogin, go } = useApp();
+  const navigate = useNavigate();
+  const sub = useLocation().pathname.split("/")[2] || "";
   const localData = useMemo(() => storeKind === "cloud" ? readLocalBrowserData() : null, [storeKind]);
   const [migrate, setMigrate] = useState(null);
   const [name, setName] = useState(realData.settings.profileName);
@@ -163,80 +166,89 @@ export function Settings() {
       actions.replaceAll({ settings: { ...defaultSettings(), profileName: realData.settings.profileName }, txs: [] }, null, "Dados apagados");
   };
   const storeInfo = {
-    cloud: { icon: "cloud", tone: "pos", title: "Nuvem privada", body: "Seus dados ficam salvos na nuvem, protegidos pelo seu login. Cada registro pertence só à sua conta: ninguém mais consegue ler ou alterar. Cada lançamento é gravado assim que você confirma." },
-    local: { icon: "drive", tone: "warn", title: "Somente neste navegador", body: "Os dados ficam no armazenamento deste navegador. Eles não sincronizam com outros dispositivos e são perdidos se os dados do site forem limpos. Exporte backups com frequência." },
-    memory: { icon: "alert", tone: "neg", title: "Sem persistência", body: "O navegador bloqueou o armazenamento local (janela anônima ou dados do site bloqueados). Os dados existem apenas enquanto esta aba estiver aberta. Exporte um backup antes de fechar." },
-  }[storeKind] || { icon: "clock", tone: "", title: "Conectando…", body: "" };
+    cloud: { icon: "cloud", tone: "pos", title: "Nuvem privada", body: "", short: "Salvos assim que você confirma, e só a sua conta lê e altera." },
+    local: { icon: "drive", tone: "warn", title: "Somente neste navegador", body: "", short: "Não sincroniza com outros aparelhos e some se os dados do site forem limpos. Exporte backups com frequência." },
+    memory: { icon: "alert", tone: "neg", title: "Sem persistência", body: "", short: "O navegador bloqueou o armazenamento. Os dados existem só enquanto esta aba estiver aberta: exporte um backup antes de fechar." },
+  }[storeKind] || { icon: "clock", tone: "", title: "Conectando…", body: "", short: "" };
 
+  // tabs instead of one long page: what is used often first, rare and risky things kept apart
+  const TABS = [["financas", "Finanças"], ["aparencia", "Aparência"], ["conta", "Conta"], ["dados", "Dados"]];
+  const tab = TABS.some(([id]) => id === sub) ? sub : "financas";
+  const setTab = (id) => navigate("/config/" + id, { replace: true });
   return (
     <div className="settings fadein">
-      <nav className="settings-nav" aria-label="Seções">
-        {storeKind === "cloud" && <a href="#conta">Conta</a>}<a href="#aparencia">Aparência</a><a href="#perfil">Perfil</a><a href="#contas">Contas financeiras</a><a href="#categorias">Categorias</a><a href="#regras">Regras</a><a href="#orcamento">Orçamento</a><a href="#dados">Dados e backup</a><a href="#demo">Demonstração</a>
-      </nav>
-      <div className="stagger" style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
-        {isDemo && <div className="notice warn"><Icon name="flask" size={18} /><div>Você está no modo demonstração. As configurações abaixo se referem aos seus dados reais, que não aparecem nas outras telas enquanto a demonstração estiver ativa.</div></div>}
-        <AppearanceSection />
-        <section className="card sec" id="perfil">
-          <div className="sec-row"><div><h4>Nome na saudação</h4><p>Aparece no topo do Início.</p></div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <input id="profile-name" className="input" style={{ maxWidth: 320 }} value={name} maxLength={40} onChange={e => setName(e.target.value)} placeholder="Como quer ser chamado" />
-              <button className="btn" disabled={name.trim() === realData.settings.profileName} onClick={() => actions.saveSettings({ ...realData.settings, profileName: name.trim() }, "Nome atualizado")}>Salvar</button>
-            </div></div>
-        </section>
+      <div className="set-tabs" role="tablist" aria-label="Configurações">
+        {TABS.map(([id, label]) => <button key={id} type="button" role="tab" id={"tab-" + id} aria-selected={tab === id} aria-controls={"panel-" + id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>{label}</button>)}
+      </div>
+      <div className="set-panel stagger" role="tabpanel" id={"panel-" + tab} aria-labelledby={"tab-" + tab} key={tab}>
+        {isDemo && <div className="notice warn"><Icon name="flask" size={18} /><div>Você está no modo demonstração. Estas configurações são dos seus dados reais, que não aparecem nas outras telas enquanto a demonstração estiver ativa.</div></div>}
 
-        <section className="card sec" id="contas">
-          <div className="sec-row"><div><h4>Contas financeiras</h4><p>Saldo realizado em {D.br(today)}. Contas com lançamentos não podem ser excluídas.</p>
-            <button className="btn sm" style={{ marginTop: 12 }} onClick={() => setAccModal({})}><Icon name="plus" size={14} />Nova conta</button></div>
-            <div>{realData.settings.accounts.filter(a => !isCard(a)).map(a => {
-              const n = txCountByAcc(a.id);
-              return <div className="acc-row" key={a.id}>
-                <div style={{ minWidth: 0 }}><b>{a.name}</b><span>{ACCOUNT_TYPES[a.type]} · {n} lançamento{n === 1 ? "" : "s"}</span></div>
-                <div style={{ textAlign: "right" }}><Amount cents={Finance.accountBalance(realData.txs, a, today)} className="" />{a.type === "cartao" && <span style={{ display: "block" }}>{Finance.accountBalance(realData.txs, a, today) < 0 ? "fatura em aberto" : "sem saldo devedor"}</span>}</div>
-                <div style={{ display: "flex", gap: 2 }}>
-                  <button className="btn ghost icon sm" aria-label={`Editar ${a.name}`} onClick={() => setAccModal(a)}><Icon name="pencil" size={15} /></button>
-                  <button className="btn ghost icon sm" aria-label={`Excluir ${a.name}`} disabled={n > 0 || realData.settings.accounts.filter(a => !isCard(a)).length < 2} title={n ? "Conta com lançamentos" : ""} onClick={() => delAcc(a)}><Icon name="trash" size={15} /></button>
-                </div>
-              </div>;
-            })}
-            {realData.settings.accounts.some(isCard) && <div className="acc-row"><div><b>Cartões de crédito</b><span>{realData.settings.accounts.filter(isCard).length} cartão(ões) · gerenciados na aba própria</span></div><span /><button className="btn sm" onClick={() => go("cartoes")}>Abrir</button></div>}
-            </div></div>
-        </section>
+        {tab === "financas" && <>
+          <section className="card sec" id="contas">
+            <div className="sec-row"><div><h4>Contas financeiras</h4><p>Onde seu dinheiro está. Saldo realizado em {D.br(today)}. Contas com lançamentos não podem ser excluídas.</p>
+              <button className="btn sm" style={{ marginTop: 12 }} onClick={() => setAccModal({})}><Icon name="plus" size={14} />Nova conta</button></div>
+              <div>{realData.settings.accounts.filter(a => !isCard(a)).map(a => {
+                const n = txCountByAcc(a.id);
+                return <div className="acc-row" key={a.id}>
+                  <div style={{ minWidth: 0 }}><b>{a.name}</b><span>{ACCOUNT_TYPES[a.type]} · {n} lançamento{n === 1 ? "" : "s"}</span></div>
+                  <div style={{ textAlign: "right" }}><Amount cents={Finance.accountBalance(realData.txs, a, today)} className="" /></div>
+                  <div style={{ display: "flex", gap: 2 }}>
+                    <button className="btn ghost icon sm" aria-label={`Editar ${a.name}`} onClick={() => setAccModal(a)}><Icon name="pencil" size={15} /></button>
+                    <button className="btn ghost icon sm" aria-label={`Excluir ${a.name}`} disabled={n > 0 || realData.settings.accounts.filter(a => !isCard(a)).length < 2} title={n ? "Conta com lançamentos" : ""} onClick={() => delAcc(a)}><Icon name="trash" size={15} /></button>
+                  </div>
+                </div>;
+              })}
+              <div className="acc-row"><div><b>Cartões de crédito</b><span>{realData.settings.accounts.filter(isCard).length ? `${realData.settings.accounts.filter(isCard).length} cartão(ões) · fechamento, vencimento e limite na aba Cartões` : "Cadastre na aba Cartões"}</span></div><span /><button className="btn sm" onClick={() => go("cartoes")}>Abrir</button></div>
+              </div></div>
+          </section>
+          <CategoriesSection />
+          <RulesSection />
+          <BudgetSection />
+        </>}
 
-        <CategoriesSection />
-        <RulesSection />
-        <BudgetSection />
-        {storeKind === "cloud" && <section className="card sec" id="conta">
-          <div className="sec-row"><div><h4>Sua conta</h4><p>Acesso com e-mail ou usuário e senha.</p></div>
-            <div className="pref-line"><span style={{ fontSize: 13.5 }}>Conectado como <b>{userLogin || "—"}</b></span>
-              <button className="btn" onClick={actions.signOut}>Sair da conta</button></div></div>
-          <div className="sec-row"><div><h4>Excluir minha conta</h4><p>Apaga a conta e todos os lançamentos, contas, cartões e configurações, de forma definitiva. Exporte um backup antes, se quiser guardar uma cópia.</p></div>
-            <div><button className="btn danger-ghost" onClick={removeAccount}><Icon name="trash" size={15} />Excluir conta e dados</button></div></div>
-          {localData && localData.data && <div className="sec-row"><div><h4>Dados deste navegador</h4><p>Lançamentos salvos aqui antes do login, no modo local.</p></div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
-              <span style={{ fontSize: 13.5 }}>{localData.meta.count} lançamentos e {localData.meta.accounts} contas encontrados neste navegador. Eles não foram apagados.</span>
-              <button className="btn" onClick={() => setMigrate(localData)}><Icon name="upload" size={16} />Revisar e enviar para a nuvem</button></div></div>}
-        </section>}
-        <section className="card sec" id="dados">
-          <div className="sec-row"><div><h4>Onde os dados ficam</h4><p>Verificado ao abrir o app.</p></div>
-            <div className={"notice " + storeInfo.tone}><Icon name={storeInfo.icon} size={18} /><div><b style={{ display: "block", marginBottom: 2 }}>{storeInfo.title}</b>{storeInfo.body}
-              {saveState.error && <div style={{ marginTop: 6, color: "var(--neg)" }}>Última falha: {saveState.error}</div>}</div></div></div>
-          <div className="sec-row"><div><h4>Backup</h4><p>Arquivo JSON com contas e lançamentos ({realData.txs.length}). Dados da demonstração nunca entram no backup.</p></div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {tab === "aparencia" && <AppearanceSection />}
+
+        {tab === "conta" && <>
+          <section className="card sec" id="perfil">
+            {storeKind === "cloud" && <div className="sec-row"><div><h4>Seu acesso</h4><p>Você entra com e-mail e senha.</p></div>
+              <div className="pref-line"><span style={{ fontSize: 13.5 }}>Conectado como <b>{userLogin || "—"}</b></span>
+                <button className="btn" onClick={actions.signOut}>Sair da conta</button></div></div>}
+            <div className="sec-row"><div><h4>Nome na saudação</h4><p>Aparece no topo do Início.</p></div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button className="btn" onClick={doExport}><Icon name="download" size={16} />Exportar backup</button>
-                <button className="btn" onClick={() => fileRef.current.click()}><Icon name="upload" size={16} />Restaurar backup</button>
-                <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={onFile} />
-              </div>
-              {importState && importState.error && <div className="notice neg"><Icon name="alert" size={18} /><div><b style={{ display: "block" }}>Backup não aceito</b>{importState.error} Nenhum dado foi alterado.</div></div>}
-            </div></div>
-          <div className="sec-row"><div><h4>Apagar todos os dados</h4><p>Remove lançamentos e contas. Pede confirmação por escrito.</p></div>
-            <div><button className="btn danger-ghost" style={{ border: "1px solid var(--neg-soft)" }} disabled={!realData.txs.length && realData.settings.accounts.length <= 1} onClick={wipe}><Icon name="trash" size={16} />Apagar dados</button></div></div>
-        </section>
+                <input id="profile-name" className="input" style={{ maxWidth: 320 }} value={name} maxLength={40} onChange={e => setName(e.target.value)} placeholder="Como quer ser chamado" />
+                <button className="btn" disabled={name.trim() === realData.settings.profileName} onClick={() => actions.saveSettings({ ...realData.settings, profileName: name.trim() }, "Nome atualizado")}>Salvar</button>
+              </div></div>
+            {localData && localData.data && <div className="sec-row"><div><h4>Dados deste navegador</h4><p>Lançamentos salvos aqui antes do login, no modo local.</p></div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 13.5 }}>{localData.meta.count} lançamentos e {localData.meta.accounts} contas encontrados neste navegador. Eles não foram apagados.</span>
+                <button className="btn" onClick={() => setMigrate(localData)}><Icon name="upload" size={16} />Revisar e enviar para a nuvem</button></div></div>}
+          </section>
+          {storeKind === "cloud" && <section className="danger-zone">
+            <div><h4>Excluir minha conta</h4><p>Apaga a conta e todos os lançamentos, contas, cartões e configurações, de forma definitiva. Exporte um backup antes em Dados, se quiser guardar uma cópia.</p></div>
+            <button className="btn danger-ghost" onClick={removeAccount}><Icon name="trash" size={15} />Excluir conta e dados</button>
+          </section>}
+        </>}
 
-        <section className="card sec" id="demo">
-          <div className="sec-row"><div><h4>Modo demonstração</h4><p>Dados fictícios em memória, separados dos seus. Nada é salvo enquanto estiver ativo.</p></div>
-            <div>{isDemo ? <button className="btn" onClick={actions.exitDemo}>Sair da demonstração</button> : <button className="btn" onClick={actions.enterDemo}><Icon name="flask" size={16} />Abrir demonstração</button>}</div></div>
-        </section>
+        {tab === "dados" && <>
+          <section className="card sec" id="dados">
+            <div className="sec-row"><div><h4>Backup</h4><p>Uma cópia de tudo ({realData.txs.length} lançamentos, contas, cartões e categorias) em um arquivo que você guarda onde quiser.</p></div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="btn" onClick={doExport}><Icon name="download" size={16} />Exportar backup</button>
+                  <button className="btn" onClick={() => fileRef.current.click()}><Icon name="upload" size={16} />Restaurar backup</button>
+                  <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={onFile} />
+                </div>
+                {importState && importState.error && <div className="notice neg"><Icon name="alert" size={18} /><div><b style={{ display: "block" }}>Backup não aceito</b>{importState.error} Nenhum dado foi alterado.</div></div>}
+              </div></div>
+            <div className="sec-row"><div><h4>Onde os dados ficam</h4></div>
+              <div className="store-line"><Icon name={storeInfo.icon} size={16} style={{ color: `var(--${storeInfo.tone || "text-3"})` }} /><span><b>{storeInfo.title}.</b> {storeInfo.short}</span>
+                {saveState.error && <span style={{ color: "var(--neg)" }}>Última falha: {saveState.error}</span>}</div></div>
+          </section>
+          <section className="danger-zone">
+            <div><h4>Apagar todos os dados</h4><p>Remove todos os lançamentos e contas e mantém a sua conta. Pede confirmação por escrito{storeKind === "cloud" ? " e a sua senha" : ""}.</p></div>
+            <button className="btn danger-ghost" disabled={!realData.txs.length && realData.settings.accounts.length <= 1} onClick={wipe}><Icon name="trash" size={15} />Apagar dados</button>
+          </section>
+        </>}
       </div>
       {accModal && <AccountModal initial={accModal.id ? accModal : null} onClose={() => setAccModal(null)} />}
       {importState && importState.data && <ImportDialog parsed={importState} onClose={() => setImportState(null)} />}
