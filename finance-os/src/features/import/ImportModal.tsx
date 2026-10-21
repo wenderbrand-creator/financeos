@@ -62,7 +62,7 @@ export function ImportModal({ onClose, cardId }: any) {
       setOverrides({}); setFilter("all");
       setFile({ name: f.name, parsed, kind });
       setStep("review");
-    } catch { setError("Não foi possível ler este arquivo. Use um OFX ou CSV exportado pelo banco."); }
+    } catch { setError("Não foi possível ler este arquivo. Use o PDF, OFX ou CSV baixado do app do banco."); }
   };
 
   // PDF: read the text in the browser, then parse with the sign rules of the destination (bill or statement)
@@ -288,7 +288,9 @@ export function ImportModal({ onClose, cardId }: any) {
       <button className="btn danger-ghost" onClick={async () => { if (await actions.undoImport(result.ids)) onClose(); }}><Icon name="repeat" size={15} />Desfazer importação</button>
       <div className="spacer" />
       <button className="btn" onClick={() => { setStep("file"); setFile(null); setResult(null); }}>Importar outro arquivo</button>
-      <button className="btn primary" onClick={() => { setMonth(result.lastMonth); go("orcamento"); onClose(); }}>Ver no Orçamento</button>
+      {account.type === "cartao"
+        ? <button className="btn primary" onClick={() => { const key = file?.parsed?.dueDate ? file.parsed.dueDate.slice(0, 7) : CardMath.billOf(account, result.to); actions.goCards(key, account.id); onClose(); }}>Ver a fatura no cartão</button>
+        : <button className="btn primary" onClick={() => { setMonth(result.lastMonth); go("orcamento"); onClose(); }}>Ver em Lançamentos</button>}
     </>;
   }
   const title = fixedCard ? `Importar fatura · ${fixedCard.name}` : "Importar extrato ou fatura";

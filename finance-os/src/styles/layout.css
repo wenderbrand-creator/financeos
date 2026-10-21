@@ -53,3 +53,6 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .month-picker .label .short{display:none}
 .tx-amt.tr{color:var(--text-2)}
 .content{max-width:1480px;margin:0 auto;padding-block:8px 64px;padding-left:max(32px,env(safe-area-inset-left,0px));padding-right:max(32px,env(safe-area-inset-right,0px))}
+.nav-soon-toggle{display:flex;align-items:center;gap:6px;width:100%;background:none;border:0;cursor:pointer;text-align:left;border-radius:6px;transition:color .15s}
+.nav-soon-toggle:hover{color:var(--text-2)}
+.nav-soon-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}

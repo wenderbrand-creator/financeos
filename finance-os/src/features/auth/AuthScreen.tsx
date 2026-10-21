@@ -72,7 +72,7 @@ export function AuthScreen({ notice }: { notice?: string | null }) {
 
           <ul className="auth-points">
             <li><Icon name="check" size={16} sw={2.2} /><span><b>Cada compra na fatura certa.</b> Fechamento, vencimento, parcelas e assinaturas de cada cartão, separados.</span></li>
-            <li><Icon name="check" size={16} sw={2.2} /><span><b>Extrato do banco em segundos.</b> Importe OFX ou CSV, com categorias sugeridas e sem lançamento repetido.</span></li>
+            <li><Icon name="check" size={16} sw={2.2} /><span><b>Extrato do banco em segundos.</b> Importe o PDF, OFX ou CSV do banco, com categorias sugeridas e sem lançamento repetido.</span></li>
             <li><Icon name="check" size={16} sw={2.2} /><span><b>Só você vê seus números.</b> Acesso com e-mail e senha, e cada conta enxerga apenas os próprios dados.</span></li>
           </ul>
         </div>

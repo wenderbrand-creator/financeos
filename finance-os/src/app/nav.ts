@@ -2,21 +2,22 @@ export const NAV = [
   { group: "Painel", items: [
     { id: "inicio", label: "Início", icon: "grid", ready: true },
     { id: "visao", label: "Visão geral", icon: "chart", ready: true },
-    { id: "orcamento", label: "Orçamento", icon: "arrows", ready: true },
+    { id: "orcamento", label: "Lançamentos", icon: "arrows", ready: true },
     { id: "cartoes", label: "Cartões de crédito", icon: "card", ready: true },
   ]},
-  { group: "Planejamento", items: [
+  { group: "Conta", items: [
+    { id: "config", label: "Configurações", icon: "sliders", ready: true },
+    { id: "ajuda", label: "Ajuda", icon: "help", ready: true },
+  ]},
+  // modules still being built: one collapsed group, so they don't crowd the menu
+  { group: "Em breve", soon: true, items: [
     { id: "reserva", label: "Reserva de emergência", icon: "shield" },
     { id: "metas", label: "Metas", icon: "target" },
     { id: "investimentos", label: "Investimentos", icon: "trend" },
     { id: "patrimonio", label: "Patrimônio", icon: "landmark" },
-  ]},
-  { group: "Recursos", items: [
     { id: "calculadoras", label: "Calculadoras", icon: "calc" },
-    { id: "ajuda", label: "Ajuda", icon: "help", ready: true },
-    { id: "config", label: "Configurações", icon: "sliders", ready: true },
   ]},
-];
+] as { group: string; soon?: boolean; items: { id: string; label: string; icon: string; ready?: boolean }[] }[];
 export const NAV_FLAT = NAV.flatMap(g => g.items);
 
 export const PENDING = {

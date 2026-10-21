@@ -54,6 +54,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
   const [toasts, setToasts] = useState([]);
   const [scrolled, setScrolled] = useState(false);
   const [cardBill, setCardBill] = useState(null);
+  const [cardSel, setCardSel] = useState(null);
   const [welcomeForced, setWelcomeForced] = useState(false);
   const [welcomeClosed, setWelcomeClosed] = useState(false);
   const storeRef = useRef(null), demoRef = useRef(null), lastFailed = useRef(null);
@@ -190,7 +191,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
     },
     openImport: (cardId?: string) => setModal({ kind: "import", cardId: typeof cardId === "string" ? cardId : undefined }),
     openWelcome: () => { if (demoRef.current) { demoRef.current = null; setDemo(null); } setWelcomeClosed(false); setWelcomeForced(true); },
-    goCards: (billKey) => { setCardBill(billKey || null); go("cartoes"); },
+    goCards: (billKey, cardId?) => { setCardBill(billKey || null); if (cardId) setCardSel(cardId); go("cartoes"); },
     openPayBill: (cardId, key) => setModal({ kind: "paybill", cardId, key }),
     payBill: async (list, msg) => {
       const ok = await run(s => s.saveMany(list));
@@ -224,7 +225,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
   const go = (id) => { if (id !== "cartoes") setCardBill(null); setDrawer(false); if (id !== page) navigate("/" + id); window.scrollTo({ top: 0 }); };
 
   registerCategories(data.settings.categories);
-  const ctx = { userLogin, cardBill, setCardBill, data, realData: real, month, setMonth, hidden, actions, isDemo, go, storeKind, saveState, prefs, setPrefs, motionOn };
+  const ctx = { userLogin, cardBill, setCardBill, cardSel, setCardSel, data, realData: real, month, setMonth, hidden, actions, isDemo, go, storeKind, saveState, prefs, setPrefs, motionOn };
   const effTheme = effectiveTheme(prefs);
   if (!page) return <div className="boot">Carregando Finance OS…</div>;
   const nav = NAV_FLAT.find(n => n.id === page);
@@ -272,7 +273,7 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
                   <button className="label" onClick={() => setMonth(curMonth)} title="Voltar ao mês atual"><span className="full">{D.label(month)}</span><span className="short">{D.short(month)}</span></button>
                   <button onClick={() => setMonth(D.addMonths(month, 1))} aria-label="Próximo mês"><Icon name="right" size={16} /></button>
                 </div>}
-                <button className="btn primary" onClick={() => actions.openTx()} disabled={!real.ready && !isDemo} title="Novo lançamento (atalho: N)"><Icon name="plus" size={16} /><span className="hide-sm">Novo lançamento</span></button>
+                <button className="btn primary" onClick={() => actions.openTx(page === "cartoes" && cardSel ? { type: "expense", accountId: cardSel } : undefined)} disabled={!real.ready && !isDemo} title="Novo lançamento (atalho: N)"><Icon name="plus" size={16} /><span className="hide-sm">Novo lançamento</span></button>
               </div>
             </div>
           </header>

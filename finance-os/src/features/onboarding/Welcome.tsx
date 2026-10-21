@@ -205,7 +205,7 @@ export function Welcome({ onClose, fallbackName }: { onClose: () => void; fallba
     <div className="wl-paths">
       <button type="button" className="wl-path" data-autofocus="" disabled={busy} onClick={() => finish("done", actions.openImport)}>
         <span className="wl-pico"><Icon name="upload" size={20} /></span>
-        <span><b>Importar o extrato do banco</b><span>Arquivo OFX ou CSV. As categorias vêm sugeridas e nada se repete.</span></span><Icon name="right" size={16} /></button>
+        <span><b>Importar o extrato do banco</b><span>PDF, OFX ou CSV do app do banco. Entradas e saídas separadas, categorias sugeridas e nada se repete.</span></span><Icon name="right" size={16} /></button>
       <button type="button" className="wl-path" disabled={busy} onClick={() => finish("done", () => actions.openTx())}>
         <span className="wl-pico"><Icon name="plus" size={20} /></span>
         <span><b>Lançar o primeiro gasto ou receita</b><span>Leva segundos. Dica: aperte N em qualquer tela.</span></span><Icon name="right" size={16} /></button>
@@ -253,7 +253,7 @@ export function FirstSteps() {
   const items = [
     { id: "tx", done: txs.some((t: any) => t.category !== "__transfer"), label: "Lance seu primeiro gasto ou receita", hint: "Aperte N em qualquer tela.", cta: "Lançar", run: () => actions.openTx() },
     { id: "card", done: s.accounts.some(isCard), label: "Cadastre seu cartão de crédito", hint: "Cada compra cai na fatura certa.", cta: "Cadastrar", run: () => actions.goCards() },
-    { id: "import", done: txs.some((t: any) => t.importId), label: "Importe um extrato do banco", hint: "OFX ou CSV, sem repetir lançamentos.", cta: "Importar", run: actions.openImport },
+    { id: "import", done: txs.some((t: any) => t.importId), label: "Importe um extrato do banco", hint: "PDF, OFX ou CSV, sem repetir lançamentos.", cta: "Importar", run: actions.openImport },
     { id: "repeat", done: txs.some((t: any) => t.seriesId), label: "Cadastre uma conta fixa ou assinatura", hint: "Aluguel, internet, streaming: use “Repetir todo mês”.", cta: "Criar", run: () => actions.openTx() },
   ];
   const doneCount = items.filter(i => i.done).length;

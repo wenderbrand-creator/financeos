@@ -56,7 +56,7 @@ export function AppearanceSection() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div className="pref-line"><label htmlFor="pref-start" style={{ fontSize: 13.5 }}>Abrir em</label>
             <select id="pref-start" className="select" style={{ width: 200 }} value={prefs.startPage} onChange={e => setPrefs({ startPage: e.target.value })}>
-              <option value="inicio">Início</option><option value="visao">Visão geral</option><option value="orcamento">Orçamento</option></select></div>
+              <option value="inicio">Início</option><option value="visao">Visão geral</option><option value="orcamento">Lançamentos</option></select></div>
           <div className="pref-line"><span style={{ fontSize: 13.5 }}>Começar com valores ocultos</span>
             <button type="button" role="switch" aria-checked={prefs.hideOnOpen} aria-label="Começar com valores ocultos" className={"switch" + (prefs.hideOnOpen ? " on" : "")} onClick={() => setPrefs({ hideOnOpen: !prefs.hideOnOpen })} /></div>
         </div></div>

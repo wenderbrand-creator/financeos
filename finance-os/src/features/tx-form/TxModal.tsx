@@ -19,14 +19,14 @@ export function TxModal({ initial, onClose }: any) {
   const { data, month, actions } = useApp();
   const today = D.todayISO();
   const isEdit = !!(initial && initial.id);
-  const firstCat = (type) => (CATS[type].find(c => !c.archived) || CATS[type][0] || {}).id || "";
   const cards = data.settings.accounts.filter(isCard), banks = data.settings.accounts.filter(a => !isCard(a));
   const initAcc = data.settings.accounts.find(a => a.id === initial?.accountId);
   const [f, setF] = useState(() => ({
     type: initial?.type || "expense",
     description: initial?.description || "",
     amountCents: initial?.amountCents || 0,
-    category: initial?.category || firstCat(initial?.type || "expense"),
+    // new entries start without a category: it is suggested from the description, or chosen — never a silent "Moradia"
+    category: initial?.category || "",
     date: initial?.date || (D.monthOf(today) === month ? today : `${month}-01`),
     status: initial?.status || "paid",
     accountId: initAcc && (!isCard(initAcc) || initial?.type === "income") ? initAcc.id : banks[0]?.id,
@@ -46,7 +46,7 @@ export function TxModal({ initial, onClose }: any) {
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
-  const setType = (t) => setF(p => ({ ...p, type: t, category: p.category === TRANSFER_CAT || catOf(p.category).type === t ? p.category : firstCat(t) }));
+  const setType = (t) => setF(p => ({ ...p, type: t, category: p.category === TRANSFER_CAT || catOf(p.category).type === t ? p.category : "" }));
   const isTr = f.category === TRANSFER_CAT;
   const onCard = f.type === "expense" && f.payWith === "card" && cards.length > 0 && !isTr;
   const card = onCard ? cards.find(c => c.id === f.cardId) : null;

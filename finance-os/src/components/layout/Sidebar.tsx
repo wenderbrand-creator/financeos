@@ -13,20 +13,26 @@ export function Sidebar({ page, go, collapsed, setCollapsed, open, storeKind, is
   const navRef = useRef(null);
   const [glow, setGlow] = useState(null);
   const [live, setLive] = useState(false);
+  const soonPages = NAV.filter(g => g.soon).flatMap(g => g.items.map(i => i.id));
+  const [soonOpen, setSoonOpen] = useState(() => { try { return localStorage.getItem("finance-os:nav-soon") === "1"; } catch { return false; } });
+  const showSoon = soonOpen || soonPages.includes(page);
+  const toggleSoon = () => { const v = !showSoon; setSoonOpen(v); try { localStorage.setItem("finance-os:nav-soon", v ? "1" : "0"); } catch { } };
   const measure = useCallback(() => {
     const el = navRef.current && navRef.current.querySelector(".nav-item.active");
     setGlow(el ? { y: el.offsetTop, h: el.offsetHeight } : null);
   }, []);
-  useLayoutEffect(measure, [page, collapsed]);
+  useLayoutEffect(measure, [page, collapsed, showSoon]);
   useEffect(() => { const t = setTimeout(() => setLive(true), 120); const ro = new ResizeObserver(measure); ro.observe(navRef.current); return () => { clearTimeout(t); ro.disconnect(); }; }, []);
   return (
     <aside className={"side" + (collapsed ? " collapsed" : "") + (open ? " open" : "")} aria-label="Navegação principal">
       <div className="brand"><BrandMark /><div className="brand-name">Finance <span>OS</span></div></div>
       <nav className={"nav" + (glow ? " glowing" : "")} ref={navRef}>
         {glow && <span aria-hidden="true" className={"nav-glow" + (live ? " live" : "")} style={{ height: glow.h, "--gy": `${glow.y}px` }} />}
-        {NAV.map((g, gi) => <React.Fragment key={g.group}>
-        {collapsed ? gi > 0 && <div className="nav-group-sep" /> : <div className="nav-group-label">{g.group}</div>}
-        {g.items.map(it => <button key={it.id} className={"nav-item" + (page === it.id ? " active" : "")} onClick={() => go(it.id)} title={collapsed ? it.label : undefined} aria-current={page === it.id ? "page" : undefined}>
+        {NAV.map((g, gi) => g.soon && collapsed ? null : <React.Fragment key={g.group}>
+        {g.soon
+          ? <button type="button" className="nav-group-label nav-soon-toggle" aria-expanded={showSoon} onClick={toggleSoon}>{g.group} · {g.items.length}<Icon name={showSoon ? "up" : "down"} size={12} sw={2} /></button>
+          : collapsed ? gi > 0 && <div className="nav-group-sep" /> : <div className="nav-group-label">{g.group}</div>}
+        {(!g.soon || showSoon) && g.items.map(it => <button key={it.id} className={"nav-item" + (page === it.id ? " active" : "")} onClick={() => go(it.id)} title={collapsed ? it.label : undefined} aria-current={page === it.id ? "page" : undefined}>
           <Icon name={it.icon} size={18} /><span className="nav-label">{it.label}</span>{!it.ready && <span className="nav-tag">em breve</span>}
         </button>)}
       </React.Fragment>)}</nav>

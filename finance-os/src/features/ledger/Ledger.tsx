@@ -18,18 +18,22 @@ export function Ledger() {
   const [acc, setAcc] = useState("all");
   const [sort, setSort] = useState({ by: "date", dir: "asc" });
   const monthTx = useMemo(() => Finance.ofMonth(data.txs, month), [data.txs, month]);
-  const counts = { all: monthTx.length, income: monthTx.filter(t => t.type === "income" && !isTransfer(t)).length, expense: monthTx.filter(t => t.type === "expense" && !isTransfer(t)).length, transfer: monthTx.filter(isTransfer).length };
+  // a transfer has two sides (out of one account, into another); with all accounts visible it reads as ONE movement
+  const outLeg = useMemo(() => { const m = new Map(); for (const t of monthTx) if (isTransfer(t) && t.transferId && t.type === "expense") m.set(t.transferId, t); return m; }, [monthTx]);
+  const inLeg = useMemo(() => { const m = new Map(); for (const t of monthTx) if (isTransfer(t) && t.transferId && t.type === "income") m.set(t.transferId, t); return m; }, [monthTx]);
+  const hiddenIn = (t) => acc === "all" && isTransfer(t) && t.type === "income" && t.transferId && outLeg.has(t.transferId);
+  const counts = { all: monthTx.filter(t => !(isTransfer(t) && t.type === "income" && t.transferId && outLeg.has(t.transferId))).length, income: monthTx.filter(t => t.type === "income" && !isTransfer(t)).length, expense: monthTx.filter(t => t.type === "expense" && !isTransfer(t)).length, transfer: monthTx.filter(t => isTransfer(t) && !(t.type === "income" && t.transferId && outLeg.has(t.transferId))).length };
   const today = D.todayISO();
   const rows = useMemo(() => {
     const qq = q.trim().toLowerCase();
-    let r = monthTx.filter(t => (tab === "all" || (tab === "transfer" ? isTransfer(t) : t.type === tab && !isTransfer(t)))
+    let r = monthTx.filter(t => !hiddenIn(t) && (tab === "all" || (tab === "transfer" ? isTransfer(t) : t.type === tab && !isTransfer(t)))
       && (status === "all" || (status === "late" ? t.status === "pending" && t.date < today : t.status === status))
       && (acc === "all" || t.accountId === acc)
       && (!qq || t.description.toLowerCase().includes(qq) || catOf(t.category).label.toLowerCase().includes(qq)));
     const dir = sort.dir === "asc" ? 1 : -1;
     r.sort((a, b) => sort.by === "amount" ? (a.amountCents - b.amountCents) * dir : sort.by === "desc" ? a.description.localeCompare(b.description, "pt-BR") * dir : (a.date.localeCompare(b.date) || a.createdAt - b.createdAt) * dir);
     return r;
-  }, [monthTx, tab, q, status, acc, sort, today]);
+  }, [monthTx, tab, q, status, acc, sort, today, outLeg]);
   const s = Finance.summary(rows);
   const donutType = tab === "income" ? "income" : "expense";
   const cats = Finance.byCategory(monthTx, donutType);
@@ -65,10 +69,10 @@ export function Ledger() {
             </tr></thead>
             <tbody>{rows.map((t, i) => <tr key={t.id} className="tap-row" onClick={e => { if (!(e.target as HTMLElement).closest("button")) actions.openTx(t); }} style={{ animationDelay: `${Math.min(i, 14) * 22}ms` }}>
               <td className="date c-date">{D.brShort(t.date)}</td>
-              <td className="desc c-desc"><b>{t.description}</b><span>{accName(t.accountId)}{t.seriesId && <span className="series-tag" title="Lançamento recorrente"><Icon name="repeat" size={11} sw={2} />{t.seriesIndex}/{t.seriesTotal}</span>}</span></td>
+              <td className="desc c-desc"><b>{t.description}</b><span>{acc === "all" && isTransfer(t) && t.type === "expense" && inLeg.has(t.transferId) ? `${accName(t.accountId)} → ${accName(inLeg.get(t.transferId).accountId)}` : accName(t.accountId)}{t.seriesId && <span className="series-tag" title="Lançamento recorrente"><Icon name="repeat" size={11} sw={2} />{t.seriesIndex}/{t.seriesTotal}</span>}</span></td>
               <td className="c-cat"><CatPill id={t.category} /></td>
-              <td className="c-status"><StatusPill tx={t} onToggle={() => actions.togglePaid(t)} /></td>
-              <td className="r amt c-amt" style={{ color: isTransfer(t) ? "var(--text-2)" : t.type === "income" ? "var(--pos)" : "var(--text)" }}><Amount cents={t.amountCents} sign={t.type === "income" ? "+" : "-"} /></td>
+              <td className="c-status"><StatusPill tx={t} both={acc === "all" && isTransfer(t) && inLeg.has(t.transferId)} onToggle={() => actions.togglePaid(t)} /></td>
+              <td className="r amt c-amt" style={{ color: isTransfer(t) ? "var(--text-2)" : t.type === "income" ? "var(--pos)" : "var(--text)" }}><Amount cents={t.amountCents} sign={acc === "all" && isTransfer(t) && inLeg.has(t.transferId) ? undefined : t.type === "income" ? "+" : "-"} /></td>
               <td className="c-act"><div className="row-acts">
                 <button className="btn ghost icon sm" aria-label={`Editar ${t.description}`} onClick={() => actions.openTx(t)}><Icon name="pencil" size={15} /></button>
                 <button className="btn ghost icon sm" aria-label={`Excluir ${t.description}`} onClick={() => actions.confirmDelete(t)}><Icon name="trash" size={15} /></button>

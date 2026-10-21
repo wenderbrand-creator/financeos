@@ -1,5 +1,5 @@
 import { OnceTip } from "../onboarding/Welcome";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CategoryBars } from "../../components/charts/CategoryBars";
 import { Icon } from "../../components/icons";
 import { Amount } from "../../components/ui/Amount";
@@ -118,9 +118,13 @@ export function PayBillModal({ cardId, billKey, onClose }: any) {
 }
 
 export function CardsPage() {
-  const { data, actions, cardBill, setCardBill } = useApp();
+  const { data, actions, cardBill, setCardBill, cardSel, setCardSel } = useApp();
   const cards = data.settings.accounts.filter(isCard);
-  const [sel, setSel] = useState(() => cards[0]?.id);
+  const [sel, setSel] = useState(() => cards.some(c => c.id === cardSel) ? cardSel : cards[0]?.id);
+  // another screen asked to show a specific card (e.g. after importing its bill)
+  useEffect(() => { if (cardSel && cards.some(c => c.id === cardSel)) setSel(cardSel); }, [cardSel]);
+  // the header "Novo lançamento" on this page starts as a purchase on the card being viewed
+  useEffect(() => { if (sel) setCardSel(sel); }, [sel]);
   const [cardModal, setCardModal] = useState(null);
   const card = cards.find(c => c.id === sel) || cards[0];
   const today = D.todayISO();
@@ -176,7 +180,7 @@ export function CardsPage() {
               {bill.remaining > 0 && bill.status === "open" && bill.total > 0 && <button className="btn" onClick={() => actions.openPayBill(card.id, bill.key)}>Antecipar pagamento</button>}
               <button className={"btn" + (bill.status === "open" || bill.status === "prepaid" ? " primary" : "")} onClick={() => actions.openTx({ type: "expense", accountId: card.id })}><Icon name="plus" size={16} />Nova compra</button>
               <button className="btn" onClick={() => actions.openImport(card.id)}><Icon name="upload" size={16} />Importar fatura</button>
-              <button className="btn ghost icon" aria-label="Editar cartão" title="Editar cartão" onClick={() => setCardModal(card)}><Icon name="sliders" size={17} /></button>
+              <button className="btn ghost" onClick={() => setCardModal(card)}><Icon name="pencil" size={15} />Editar cartão</button>
             </div>
           </div>
           <div className="bill-nav">

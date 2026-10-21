@@ -2,8 +2,8 @@ import { Icon } from "../icons";
 import { isTransfer, catOf } from "../../domain/categories";
 import { D } from "../../domain/dates";
 
-export function StatusPill({ tx, onToggle }: any) {
-  if (isTransfer(tx)) return <span className="pill"><Icon name="arrows" size={12} sw={2} />{tx.type === "income" ? "Entrada" : "Saída"}</span>;
+export function StatusPill({ tx, onToggle, both }: any) {
+  if (isTransfer(tx)) return <span className="pill"><Icon name="arrows" size={12} sw={2} />{both ? "Entre contas" : tx.type === "income" ? "Entrada" : "Saída"}</span>;
   const today = D.todayISO();
   const late = tx.status === "pending" && tx.date < today;
   const label = tx.status === "paid" ? (tx.type === "income" ? "Recebido" : "Pago") : late ? "Atrasado" : "Pendente";
