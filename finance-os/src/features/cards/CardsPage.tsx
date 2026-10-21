@@ -175,6 +175,7 @@ export function CardsPage() {
               {bill.remaining > 0 && bill.status !== "open" && <button className="btn primary" onClick={() => actions.openPayBill(card.id, bill.key)}><Icon name="check" size={16} sw={2.2} />Pagar fatura</button>}
               {bill.remaining > 0 && bill.status === "open" && bill.total > 0 && <button className="btn" onClick={() => actions.openPayBill(card.id, bill.key)}>Antecipar pagamento</button>}
               <button className={"btn" + (bill.status === "open" || bill.status === "prepaid" ? " primary" : "")} onClick={() => actions.openTx({ type: "expense", accountId: card.id })}><Icon name="plus" size={16} />Nova compra</button>
+              <button className="btn" onClick={() => actions.openImport(card.id)}><Icon name="upload" size={16} />Importar fatura</button>
               <button className="btn ghost icon" aria-label="Editar cartão" title="Editar cartão" onClick={() => setCardModal(card)}><Icon name="sliders" size={17} /></button>
             </div>
           </div>
@@ -198,7 +199,7 @@ export function CardsPage() {
             {bill.payments.length > 0 && <tfoot><tr><td colSpan={5}><div className="tfoot-sum">{bill.payments.map(p => <div key={p.id}><span>Pagamento em {D.br(p.date)}</span><b style={{ color: "var(--pos)" }}><Amount cents={p.amountCents} /></b></div>)}</div></td></tr></tfoot>}
           </table></div>
             : <div className="empty-mini" style={{ padding: "48px 20px" }}><b>Nenhuma compra nesta fatura</b>Compras de {D.br(bill.open)} até a véspera de {D.br(bill.close)} entram aqui.
-              <div style={{ marginTop: 12 }}><button className="btn sm" onClick={() => actions.openTx({ type: "expense", accountId: card.id })}><Icon name="plus" size={14} />Lançar compra</button></div></div>}
+              <div style={{ marginTop: 12 }}><button className="btn sm" onClick={() => actions.openTx({ type: "expense", accountId: card.id })}><Icon name="plus" size={14} />Lançar compra</button> <button className="btn ghost sm" onClick={() => actions.openImport(card.id)}><Icon name="upload" size={14} />Importar fatura</button></div></div>}
         </div>
 
         <div className="col-4" style={{ display: "flex", flexDirection: "column", gap: "var(--gap)" }}>
