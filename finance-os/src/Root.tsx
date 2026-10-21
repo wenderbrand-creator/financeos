@@ -18,7 +18,15 @@ export function Root() {
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
+    supabase.auth.getSession().then(async ({ data }) => {
+      const s = data.session ?? null;
+      if (s) {
+        // the saved token may belong to an account that was deleted or banned on the server: check with the server once
+        const { error } = await supabase!.auth.getUser();
+        if (error && [401, 403, 404].includes((error as any).status)) { await signOut("local"); setSession(null); return; }
+      }
+      setSession(s);
+    });
     const { data } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === "PASSWORD_RECOVERY") setRecovering(true);
       if (event === "SIGNED_OUT") setRecovering(false);
