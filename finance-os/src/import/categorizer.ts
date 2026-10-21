@@ -46,7 +46,13 @@ export function buildImportRows(entries, account, txs, accounts) {
   return entries.slice(0, MAX_IMPORT).map(e => {
     const type = e.cents > 0 ? "income" : "expense", amountCents = Math.abs(e.cents), nd = normDesc(e.description);
     const base = `${e.date}|${e.cents}|${nd}`, n = (occ.get(base) || 0) + 1; occ.set(base, n);
-    const importId = e.fitid ? "f" + hashStr(account.id + "|" + e.fitid + "|" + e.date) : "h" + hashStr(account.id + "|" + base) + "-" + n;
+    // banks sometimes repeat the same document number / FITID on several lines (e.g. Sicredi PIX):
+    // the first keeps the original id (re-imports still match), later ones get a counter
+    let importId;
+    if (e.fitid) {
+      const fk = "fitid|" + e.fitid + "|" + e.date, k = (occ.get(fk) || 0) + 1; occ.set(fk, k);
+      importId = "f" + hashStr(account.id + "|" + e.fitid + "|" + e.date) + (k > 1 ? "-" + k : "");
+    } else importId = "h" + hashStr(account.id + "|" + base) + "-" + n;
     const dup = byImport.has(importId) || sig.has(`${e.date}|${amountCents}|${type}|${nd}`);
     const bill = detectBillPayment(nd, type, account.type);
     const cat = categorize(e.description, type);
