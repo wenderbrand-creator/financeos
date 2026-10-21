@@ -85,8 +85,20 @@ export function createSupabaseStore(sb: SupabaseClient, userId: string) {
     async saveMany(list: any[], onProgress?: (p: number) => void) {
       await store.ensureSettings();
       let done = 0;
-      for (const part of chunk(list, BATCH)) {
-        const { error } = await sb.from(TX).upsert(part.map(t => toRow(t, userId)), { onConflict: "user_id,id" });
+      for (let part of chunk(list, BATCH)) {
+        let { error } = await sb.from(TX).upsert(part.map(t => toRow(t, userId)), { onConflict: "user_id,id" });
+        if (error && error.code === "23505" && /import_uniq/.test(error.message || "")) {
+          // some statement lines are already on the server (an earlier attempt went through, or another device):
+          // keep the server copy, show it locally, and save only the lines that are really new
+          const ids = part.map(t => t.importId).filter(Boolean);
+          const have = await sb.from(TX).select("*").eq("user_id", userId).in("import_id", ids);
+          if (have.error) fail(have.error);
+          const server = (have.data || []).map(fromRow).filter(Boolean);
+          const known = new Set(server.map((t: any) => t.importId));
+          upsertLocal(server);
+          part = part.filter(t => !t.importId || !known.has(t.importId));
+          error = part.length ? (await sb.from(TX).upsert(part.map(t => toRow(t, userId)), { onConflict: "user_id,id" })).error : null;
+        }
         if (error) fail(error);
         upsertLocal(part); done += part.length; onProgress && onProgress(done / list.length);
       }
