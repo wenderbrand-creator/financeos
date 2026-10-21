@@ -129,6 +129,7 @@ export function AuthScreen({ notice }: { notice?: string | null }) {
             {busy ? "Aguarde…" : mode === "in" ? "Entrar" : mode === "up" ? "Criar conta e começar" : "Enviar link"}
             {!busy && <Icon name="right" size={16} sw={2} />}
           </button>
+          {mode === "up" && <p className="auth-legal">Ao criar a conta, você concorda com os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</p>}
 
           {mode === "forgot" ? <p className="auth-switch"><button type="button" className="link-btn" onClick={() => switchMode("in")}>Voltar para o login</button></p>
             : ALLOW_SIGNUP && <p className="auth-switch">

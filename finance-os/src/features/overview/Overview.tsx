@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CategoryBars } from "../../components/charts/CategoryBars";
 import { FlowChart } from "../../components/charts/FlowChart";
 import { Icon } from "../../components/icons";
@@ -7,6 +7,27 @@ import { Seg } from "../../components/ui/inputs";
 import { D } from "../../domain/dates";
 import { Finance } from "../../domain/finance";
 import { useApp } from "../../state/AppContext";
+import { catOf, isTransfer } from "../../domain/categories";
+import { normDesc } from "../../import/parsers";
+
+/** per-category change between two periods, biggest moves first */
+function categoryChanges(cur: any[], prev: any[]) {
+  const sum = (list) => { const m = new Map<string, number>(); for (const t of list) if (t.type === "expense" && !isTransfer(t)) m.set(t.category, (m.get(t.category) || 0) + t.amountCents); return m; };
+  const a = sum(cur), b = sum(prev);
+  return [...new Set([...a.keys(), ...b.keys()])].map(id => ({ id, cat: catOf(id), cur: a.get(id) || 0, prev: b.get(id) || 0 }))
+    .map(r => ({ ...r, diff: r.cur - r.prev })).filter(r => r.diff !== 0).sort((x, y) => Math.abs(y.diff) - Math.abs(x.diff));
+}
+/** expenses that show up in at least 2 different months of the period (same description), with the monthly average */
+function repeating(list: any[], months: number) {
+  const g = new Map<string, { desc: string; cat: string; months: Set<string>; total: number }>();
+  for (const t of list) {
+    if (t.type !== "expense" || isTransfer(t)) continue;
+    const k = normDesc(t.description); if (k.length < 3) continue;
+    const e = g.get(k) || { desc: t.description, cat: t.category, months: new Set(), total: 0 };
+    e.months.add(t.date.slice(0, 7)); e.total += t.amountCents; g.set(k, e);
+  }
+  return [...g.values()].filter(e => e.months.size >= Math.min(2, months)).map(e => ({ ...e, avg: Math.round(e.total / e.months.size) })).sort((x, y) => y.avg - x.avg);
+}
 
 export function Overview() {
   const { data, month } = useApp();
@@ -16,7 +37,14 @@ export function Overview() {
   const prevList = Finance.ofRange(data.txs, prevFrom, prevTo);
   const prev = Finance.summary(prevList);
   const points = n === 1 ? Finance.dailyCumulative(data.txs, month).map(p => ({ ...p, title: D.br(p.key) })) : Finance.monthlySeries(data.txs, month, n).map(p => ({ ...p, title: D.label(p.key) }));
-  const cats = Finance.byCategory(Finance.ofRange(data.txs, from, month), "expense");
+  const curList = useMemo(() => Finance.ofRange(data.txs, from, month), [data.txs, from, month]);
+  const cats = Finance.byCategory(curList, "expense");
+  const changes = useMemo(() => categoryChanges(curList, prevList).slice(0, 6), [curList, prevList]);
+  // one line per kind of expense: six "Aluguel" rows would hide everything else
+  const biggest = useMemo(() => { const seen = new Set(); return curList.filter(t => t.type === "expense" && !isTransfer(t)).sort((x, y) => y.amountCents - x.amountCents)
+    .filter(t => { const k = normDesc(t.description); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 6); }, [curList]);
+  const repeats = useMemo(() => n > 1 ? repeating(curList, n).slice(0, 8) : [], [curList, n]);
+  const repeatTotal = repeats.reduce((s, r) => s + r.avg, 0);
   const periodLabel = n === 1 ? D.label(month) : `${D.label(from)} – ${D.label(month)}`;
   const Delta = ({ c, p, invert }: any) => {
     if (!prevList.length) return <div className="delta flat">Sem dados no período anterior</div>;
@@ -44,9 +72,32 @@ export function Overview() {
           <div className="card-body"><FlowChart points={points} height={300} labelEvery={n === 1 ? 5 : 1} /></div>
         </div>
       </div>
-      <div className="card col-12">
-        <div className="card-head"><div><h3 className="card-title">Despesas por categoria no período</h3><div className="card-sub">{periodLabel}</div></div></div>
-        <div className="card-body"><CategoryBars data={cats} max={10} /></div>
+      <div className="card col-7">
+        <div className="card-head"><div><h3 className="card-title">O que mudou nos gastos</h3><div className="card-sub">Por categoria, {n === 1 ? "contra o mês anterior" : `contra os ${n} meses anteriores`}</div></div></div>
+        {prevList.length && changes.length ? <div className="chg-list">{changes.map(r => {
+          const pct = r.prev ? r.diff / r.prev : null, up = r.diff > 0;
+          return <div className="chg-row" key={r.id}>
+            <span className="nm"><span className="d" style={{ background: r.cat.color }} />{r.cat.label}</span>
+            <span className="cur"><Amount cents={r.cur} /></span>
+            <span className={"chg " + (up ? "bad" : "good")}><Icon name={up ? "up" : "down"} size={12} sw={2.2} />{pct === null ? "novo" : `${Math.abs(pct * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%`}<small>{up ? "+" : "−"}<Amount cents={Math.abs(r.diff)} /></small></span>
+          </div>; })}</div>
+          : <div className="empty-mini"><b>Ainda sem comparação</b>Aparece quando houver lançamentos também no período anterior.</div>}
+      </div>
+      <div className="card col-5">
+        <div className="card-head"><div><h3 className="card-title">Maiores gastos</h3><div className="card-sub">{periodLabel}</div></div></div>
+        {biggest.length ? <div className="big-list">{biggest.map(t => <div className="big-row" key={t.id}>
+          <div style={{ minWidth: 0 }}><b>{t.description}</b><span>{D.br(t.date)} · {catOf(t.category).label}</span></div><Amount cents={t.amountCents} />
+        </div>)}</div> : <div className="empty-mini"><b>Sem despesas</b>Nenhuma despesa no período.</div>}
+      </div>
+      <div className="card col-6">
+        <div className="card-head"><div><h3 className="card-title">Despesas por categoria</h3><div className="card-sub">{periodLabel}</div></div></div>
+        <div className="card-body"><CategoryBars data={cats} max={8} /></div>
+      </div>
+      <div className="card col-6">
+        <div className="card-head"><div><h3 className="card-title">Gastos que se repetem</h3><div className="card-sub">{n === 1 ? "Escolha 3 meses ou mais para ver" : repeats.length ? <>Cerca de <Amount cents={repeatTotal} /> por mês</> : "Aparecem em mais de um mês"}</div></div></div>
+        {repeats.length ? <div className="big-list">{repeats.map(r => <div className="big-row" key={r.desc}>
+          <div style={{ minWidth: 0 }}><b>{r.desc}</b><span>{catOf(r.cat).label} · em {r.months.size} de {n} meses</span></div><span className="num"><Amount cents={r.avg} /><small>/mês</small></span>
+        </div>)}</div> : <div className="empty-mini"><b>{n === 1 ? "Período curto demais" : "Nada se repete ainda"}</b>{n === 1 ? "Assinaturas e contas fixas aparecem quando o período tem vários meses." : "Contas fixas e assinaturas aparecem aqui quando surgem em mais de um mês."}</div>}
       </div>
     </div>
   );

@@ -17,13 +17,16 @@ export const CAT_RULES: [string, string, RegExp][] = [
   ["income", "salario", /salario|pro ?labore|folha de pag|\bvencimentos\b/],
   ["income", "rendimentos", /rendimento|dividend|\bcdb\b|tesouro|\bjcp\b/],
 ];
-export function makeCategorizer(txs) {
+export function makeCategorizer(txs, rules: any[] = []) {
   const history = new Map();
   for (const t of [...txs].sort((a, b) => a.updatedAt - b.updatedAt)) if (!isTransfer(t)) history.set(t.type + "|" + normDesc(t.description), t.category);
   const usable = (id, type) => CAT_INDEX[id] && CAT_INDEX[id].type === type && !CAT_INDEX[id].archived;
   const fallback = (type) => usable(type === "income" ? "outros-r" : "outros-d", type) ? (type === "income" ? "outros-r" : "outros-d") : (CATS[type].find(c => !c.archived) || {}).id || "";
   return (desc, type) => {
     const nd = normDesc(desc);
+    // 1. your own rules ("contains X → Y"), 2. what you did before with the same description, 3. built-in keywords
+    const full = normDesc(String(desc)).replace(/\s+/g, " ") + " " + String(desc).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    for (const r of rules) if (r.type === type && usable(r.category, type) && (nd === r.match || full.includes(r.match))) return { id: r.category, learned: false, rule: true };
     const h = history.get(type + "|" + nd);
     if (h && usable(h, type)) return { id: h, learned: true };
     for (const [ty, id, re] of CAT_RULES) if (ty === type && re.test(nd) && usable(id, type)) return { id, learned: false };
@@ -34,9 +37,9 @@ export function detectBillPayment(nd, type, accType) {
   if (accType === "cartao") return type === "income" && /pagamento|pgto|pagto|pag fatura/.test(nd);
   return type === "expense" && (/fatura/.test(nd) || /(pagamento|pgto|pagto|\bpag\b).*(cartao|credito)/.test(nd));
 }
-export function buildImportRows(entries, account, txs, accounts) {
+export function buildImportRows(entries, account, txs, accounts, rules: any[] = []) {
   const today = D.todayISO();
-  const categorize = makeCategorizer(txs);
+  const categorize = makeCategorizer(txs, rules);
   const existing = txs.filter(t => t.accountId === account.id);
   const byImport = new Set(existing.map(t => t.importId).filter(Boolean));
   const sig = new Set(existing.map(t => `${t.date}|${t.amountCents}|${t.type}|${normDesc(t.description)}`));
@@ -57,7 +60,7 @@ export function buildImportRows(entries, account, txs, accounts) {
     const bill = detectBillPayment(nd, type, account.type);
     const cat = categorize(e.description, type);
     const action = bill ? (account.type === "cartao" ? "skip" : counterpart ? "transfer:" + counterpart.id : "normal") : "normal";
-    return { key: importId, importId, date: e.date, description: e.description.slice(0, 80), amountCents, type, category: cat.id, learned: cat.learned, unsure: !!cat.unsure,
+    return { key: importId, importId, date: e.date, description: e.description.slice(0, 80), amountCents, type, category: cat.id, learned: cat.learned, rule: !!cat.rule, unsure: !!cat.unsure, nd,
       dup, bill, action, include: !dup, status: account.type === "cartao" || e.date <= today ? "paid" : "pending" };
   });
 }

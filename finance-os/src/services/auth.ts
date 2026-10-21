@@ -108,6 +108,20 @@ export async function reauthenticate(password: string): Promise<string | null> {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   return error ? (error.message.toLowerCase().includes("invalid login") ? "Senha incorreta." : translate(error.message)) : null;
 }
+/**
+ * Deletes the signed-in account and all its data, after confirming the password.
+ * Uses the delete_my_account() database function (migration 0003): it can only ever delete the caller.
+ */
+export async function deleteMyAccount(password?: string): Promise<string | null> {
+  if (!supabase) return "Indisponível no modo local.";
+  // the confirmation dialog already re-checked the password; a caller without that dialog must pass it
+  if (password !== undefined) { const bad = await reauthenticate(password); if (bad) return bad; }
+  const { error } = await supabase.rpc("delete_my_account");
+  if (error) return /function .*does not exist|could not find the function/i.test(error.message) ? "A exclusão de conta ainda não foi ativada no servidor. Fale com o suporte." : "Não foi possível excluir agora. Tente de novo em instantes.";
+  try { localStorage.removeItem("finance-os:last-activity"); } catch { }
+  await supabase.auth.signOut({ scope: "local" });
+  return null;
+}
 /** Ends the session on every device ("global" revokes all refresh tokens). */
 export async function signOut(scope: "global" | "local" = "global"): Promise<void> {
   if (!supabase) return;

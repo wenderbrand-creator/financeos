@@ -6,6 +6,7 @@ import { supabase } from "./services/supabaseClient";
 import { displayLogin, signOut } from "./services/auth";
 import { IDLE_MINUTES } from "./services/config";
 import { BrandMark, Icon } from "./components/icons";
+import { LegalPage, isLegalPath } from "./features/legal/Legal";
 
 /**
  * Supabase configured → login required, data in the cloud.
@@ -40,6 +41,8 @@ export function Root() {
   }, []);
   useIdleSignOut(!!session && !recovering, () => setNotice("Sua sessão foi encerrada após um período sem uso. Entre novamente para continuar."));
 
+  // privacy policy and terms are public: readable before creating an account
+  if (isLegalPath(window.location.pathname)) return <LegalPage path={window.location.pathname} />;
   if (!supabase) {
     if ((import.meta.env.VITE_STORAGE_MODE as string) === "local") return <App />;
     return <SetupNeeded />;

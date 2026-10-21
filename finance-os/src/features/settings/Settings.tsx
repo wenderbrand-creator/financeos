@@ -13,6 +13,9 @@ import { uid } from "../../domain/ids";
 import { AppearanceSection } from "./Appearance";
 import { CategoriesSection } from "./Categories";
 import { useApp } from "../../state/AppContext";
+import { RulesSection } from "./Rules";
+import { deleteMyAccount } from "../../services/auth";
+import { BudgetSection } from "../budget/Budget";
 import { downloadText } from "../../services/download";
 import { LS_KEY } from "../../storage/local";
 import { normalizeSettings, normalizeTx, txBody, defaultSettings } from "../../domain/model";
@@ -122,6 +125,13 @@ export function Settings() {
   const localData = useMemo(() => storeKind === "cloud" ? readLocalBrowserData() : null, [storeKind]);
   const [migrate, setMigrate] = useState(null);
   const [name, setName] = useState(realData.settings.profileName);
+  const removeAccount = async () => {
+    const ok = await actions.confirm({ title: "Excluir conta e todos os dados", confirmLabel: "Excluir definitivamente", requireText: "EXCLUIR", requirePassword: true,
+      body: <>Sua conta <b>{userLogin}</b> e todos os {realData.txs.length} lançamentos, contas, cartões e configurações serão apagados do servidor. Isso não pode ser desfeito.</> });
+    if (!ok) return;
+    const err = await deleteMyAccount();
+    if (err) actions.toast(err, "err");
+  };
   const [accModal, setAccModal] = useState(null);
   const [importState, setImportState] = useState(null);
   const [exportJson, setExportJson] = useState(null);
@@ -161,7 +171,7 @@ export function Settings() {
   return (
     <div className="settings fadein">
       <nav className="settings-nav" aria-label="Seções">
-        {storeKind === "cloud" && <a href="#conta">Conta</a>}<a href="#aparencia">Aparência</a><a href="#perfil">Perfil</a><a href="#contas">Contas financeiras</a><a href="#categorias">Categorias</a><a href="#dados">Dados e backup</a><a href="#demo">Demonstração</a>
+        {storeKind === "cloud" && <a href="#conta">Conta</a>}<a href="#aparencia">Aparência</a><a href="#perfil">Perfil</a><a href="#contas">Contas financeiras</a><a href="#categorias">Categorias</a><a href="#regras">Regras</a><a href="#orcamento">Orçamento</a><a href="#dados">Dados e backup</a><a href="#demo">Demonstração</a>
       </nav>
       <div className="stagger" style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
         {isDemo && <div className="notice warn"><Icon name="flask" size={18} /><div>Você está no modo demonstração. As configurações abaixo se referem aos seus dados reais, que não aparecem nas outras telas enquanto a demonstração estiver ativa.</div></div>}
@@ -193,10 +203,14 @@ export function Settings() {
         </section>
 
         <CategoriesSection />
+        <RulesSection />
+        <BudgetSection />
         {storeKind === "cloud" && <section className="card sec" id="conta">
           <div className="sec-row"><div><h4>Sua conta</h4><p>Acesso com e-mail ou usuário e senha.</p></div>
             <div className="pref-line"><span style={{ fontSize: 13.5 }}>Conectado como <b>{userLogin || "—"}</b></span>
               <button className="btn" onClick={actions.signOut}>Sair da conta</button></div></div>
+          <div className="sec-row"><div><h4>Excluir minha conta</h4><p>Apaga a conta e todos os lançamentos, contas, cartões e configurações, de forma definitiva. Exporte um backup antes, se quiser guardar uma cópia.</p></div>
+            <div><button className="btn danger-ghost" onClick={removeAccount}><Icon name="trash" size={15} />Excluir conta e dados</button></div></div>
           {localData && localData.data && <div className="sec-row"><div><h4>Dados deste navegador</h4><p>Lançamentos salvos aqui antes do login, no modo local.</p></div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
               <span style={{ fontSize: 13.5 }}>{localData.meta.count} lançamentos e {localData.meta.accounts} contas encontrados neste navegador. Eles não foram apagados.</span>

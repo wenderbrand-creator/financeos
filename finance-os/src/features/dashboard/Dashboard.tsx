@@ -11,6 +11,7 @@ import { pad, MONTHS, D } from "../../domain/dates";
 import { Finance } from "../../domain/finance";
 import { Money } from "../../domain/money";
 import { useApp } from "../../state/AppContext";
+import { BudgetCard } from "../budget/Budget";
 
 /* =====================================================================
    10. PAGES
@@ -41,6 +42,26 @@ export function Dashboard() {
   const isEmpty = txs.length === 0;
   const maxFlow = Math.max(sum.income, sum.expense, 1);
   const balanceT = useTween(balance, 900);
+
+  // nothing recorded yet: no wall of R$ 0,00 and empty charts, just the ways to start
+  if (isEmpty && !isDemo) return (
+    <div className="dash stagger">
+      <section className="card empty-start col-12">
+        <h2>{settings.profileName ? `${settings.profileName}, vamos colocar seus números aqui.` : "Vamos colocar seus números aqui."}</h2>
+        <p>O painel mostra saldo, gastos por categoria e vencimentos assim que entram os primeiros lançamentos. O jeito mais rápido é trazer o extrato do banco.</p>
+        <div className="empty-paths">
+          <button type="button" className="empty-path primary" onClick={() => actions.openImport()}>
+            <Icon name="upload" size={22} /><span><b>Importar extrato do banco</b><span>PDF, OFX ou CSV baixado do app do banco. Entradas e saídas separadas, categorias sugeridas.</span></span><Icon name="right" size={18} /></button>
+          <button type="button" className="empty-path" onClick={() => actions.openTx()}>
+            <Icon name="plus" size={22} /><span><b>Lançar um gasto ou receita</b><span>Leva segundos. Dica: aperte N em qualquer tela.</span></span><Icon name="right" size={18} /></button>
+        </div>
+        <div className="empty-more">
+          {cards.length === 0 && <button type="button" className="link-btn" onClick={() => go("cartoes")}><Icon name="card" size={14} />Cadastrar cartão de crédito</button>}
+          <button type="button" className="link-btn" onClick={actions.enterDemo}><Icon name="flask" size={14} />Ver um exemplo com dados fictícios</button>
+        </div>
+      </section>
+    </div>
+  );
 
   return (
     <div className="dash stagger">
@@ -152,6 +173,7 @@ export function Dashboard() {
             : <div className="empty-mini"><b>Nada pendente</b>Lançamentos com status pendente aparecem aqui.</div>}
         </div>
       </div>
+      <BudgetCard compact={false} className="col-12" />
     </div>
   );
 }

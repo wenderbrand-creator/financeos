@@ -9,6 +9,7 @@ import { D } from "../../domain/dates";
 import { Finance } from "../../domain/finance";
 import { Money } from "../../domain/money";
 import { useApp } from "../../state/AppContext";
+import { BudgetCard } from "../budget/Budget";
 
 export function Ledger() {
   const { data, month, actions, hidden } = useApp();
@@ -17,7 +18,10 @@ export function Ledger() {
   const [status, setStatus] = useState("all");
   const [acc, setAcc] = useState("all");
   const [sort, setSort] = useState({ by: "date", dir: "asc" });
-  const monthTx = useMemo(() => Finance.ofMonth(data.txs, month), [data.txs, month]);
+  const [everywhere, setEverywhere] = useState(false);
+  // searching can look across every month (finding "that payment from March" without paging months)
+  const searchAll = everywhere && q.trim().length > 0;
+  const monthTx = useMemo(() => searchAll ? data.txs : Finance.ofMonth(data.txs, month), [data.txs, month, searchAll]);
   // a transfer has two sides (out of one account, into another); with all accounts visible it reads as ONE movement
   const outLeg = useMemo(() => { const m = new Map(); for (const t of monthTx) if (isTransfer(t) && t.transferId && t.type === "expense") m.set(t.transferId, t); return m; }, [monthTx]);
   const inLeg = useMemo(() => { const m = new Map(); for (const t of monthTx) if (isTransfer(t) && t.transferId && t.type === "income") m.set(t.transferId, t); return m; }, [monthTx]);
@@ -61,14 +65,15 @@ export function Ledger() {
             <select className="select" aria-label="Conta" value={acc} onChange={e => setAcc(e.target.value)}>
               <option value="all">Todas as contas</option>{data.settings.accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
-            {filtered && <button className="btn ghost sm" onClick={() => { setQ(""); setStatus("all"); setAcc("all"); }}>Limpar filtros</button>}
+            {q.trim() && <label className="chk-inline"><input type="checkbox" checked={everywhere} onChange={e => setEverywhere(e.target.checked)} />Buscar em todos os meses</label>}
+            {filtered && <button className="btn ghost sm" onClick={() => { setQ(""); setStatus("all"); setAcc("all"); setEverywhere(false); }}>Limpar filtros</button>}
           </div>
           {rows.length ? <div className="table-wrap"><table className="tbl resp ledger-tbl">
             <thead><tr>
               <SortTh by="date">Data</SortTh><SortTh by="desc">Descrição</SortTh><th>Categoria</th><th>Status</th><SortTh by="amount" r>Valor</SortTh><th className="r"><span className="sr" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>Ações</span></th>
             </tr></thead>
             <tbody>{rows.map((t, i) => <tr key={t.id} className="tap-row" onClick={e => { if (!(e.target as HTMLElement).closest("button")) actions.openTx(t); }} style={{ animationDelay: `${Math.min(i, 14) * 22}ms` }}>
-              <td className="date c-date">{D.brShort(t.date)}</td>
+              <td className="date c-date">{searchAll && !t.date.startsWith(month) ? D.br(t.date).replace(/\/(\d{2})(\d{2})$/, "/$2") : D.brShort(t.date)}</td>
               <td className="desc c-desc"><b>{t.description}</b><span>{acc === "all" && isTransfer(t) && t.type === "expense" && inLeg.has(t.transferId) ? `${accName(t.accountId)} → ${accName(inLeg.get(t.transferId).accountId)}` : accName(t.accountId)}{t.seriesId && <span className="series-tag" title="Lançamento recorrente"><Icon name="repeat" size={11} sw={2} />{t.seriesIndex}/{t.seriesTotal}</span>}</span></td>
               <td className="c-cat"><CatPill id={t.category} /></td>
               <td className="c-status"><StatusPill tx={t} both={acc === "all" && isTransfer(t) && inLeg.has(t.transferId)} onToggle={() => actions.togglePaid(t)} /></td>
@@ -87,9 +92,11 @@ export function Ledger() {
             </div></td></tr></tfoot>
           </table></div>
             : <div className="empty-mini" style={{ padding: "56px 20px" }}><b>{filtered ? "Nenhum lançamento com esses filtros" : `Nenhum lançamento em ${D.label(month).toLowerCase()}`}</b>
-              {filtered ? "Ajuste a busca ou limpe os filtros." : "Use Adicionar para registrar receitas e despesas deste mês."}</div>}
+              {filtered ? (q.trim() && !everywhere ? <>Só procurei em {D.label(month).toLowerCase()}. <button type="button" className="link-btn" onClick={() => setEverywhere(true)}>Buscar em todos os meses</button></> : "Ajuste a busca ou limpe os filtros.") : "Use Adicionar para registrar receitas e despesas deste mês."}</div>}
         </div>
 
+        <div className="ledger-side">
+        <BudgetCard compact />
         <div className="card">
           <div className="card-head"><div><h3 className="card-title">{donutType === "income" ? "Receitas" : "Despesas"} por categoria</h3><div className="card-sub">{D.label(month)}</div></div></div>
           <div className="card-body">
@@ -100,6 +107,7 @@ export function Ledger() {
               </div>)}</div>
             </div> : <div className="empty-mini"><b>Sem dados</b>A distribuição aparece quando houver {donutType === "income" ? "receitas" : "despesas"} no mês.</div>}
           </div>
+        </div>
         </div>
       </div>
     </div>

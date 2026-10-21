@@ -33,6 +33,8 @@ await db.exec(`
 await db.exec(mig("0001_finance_os.sql"));
 await db.exec(mig("0002_security_hardening.sql"));
 await db.exec(mig("0002_security_hardening.sql")); // must be re-runnable
+await db.exec(mig("0003_account_deletion.sql"));
+await db.exec(mig("0003_account_deletion.sql")); // must be re-runnable
 
 /** run a statement as a given role/user; returns {rows, error} */
 async function as(user, sql, params = []) {
@@ -153,6 +155,23 @@ ok(left.rows[0].t === 0 && left.rows[0].a === 0 && left.rows[0].s === 0, "ao exc
 console.log("\nTabelas públicas sem RLS");
 r = await db.query(`select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and not c.relrowsecurity`);
 ok(r.rows.length === 0, "todas as tabelas públicas têm RLS", JSON.stringify(r.rows));
+
+console.log("\nExclusão da própria conta (LGPD)");
+const C = "33333333-3333-3333-3333-333333333333";
+await db.exec(`insert into auth.users values ('${C}', 'c@test.dev')`);
+ok(!(await ins(C, tx("c1", C))).error, "C cria um lançamento antes de excluir a conta");
+r = await as("anon", `select public.delete_my_account()`);
+ok(!!r.error, "visitante anônimo não consegue chamar a exclusão", JSON.stringify(r));
+r = await as(C, `select public.delete_my_account()`);
+ok(!r.error, "C exclui a própria conta", JSON.stringify(r));
+r = await db.query(`select count(*)::int n from auth.users where id = '${C}'`);
+ok(r.rows[0].n === 0, "usuário C some de auth.users");
+r = await db.query(`select (select count(*)::int from public.transactions where user_id = '${C}') + (select count(*)::int from public.audit_log where user_id = '${C}') + (select count(*)::int from public.user_usage where user_id = '${C}') n`);
+ok(r.rows[0].n === 0, "lançamentos, histórico e contador de C são apagados junto");
+r = await db.query(`select count(*)::int n from auth.users where id = '${A}'`);
+ok(r.rows[0].n === 1, "a conta de A continua intacta");
+r = await as(A, `select count(*)::int n from public.transactions`);
+ok(r.rows[0].n >= 1, "os lançamentos de A continuam intactos");
 
 console.log(`\n${pass} aprovados, ${fail} reprovados`);
 process.exit(fail ? 1 : 0);

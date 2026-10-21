@@ -31,8 +31,10 @@ export function scenario(m: any): any {
   const nubank = m.parseCSV("date,title,amount\n2026-10-01,Netflix.Com,55.90\n2026-10-08,Pagamento recebido,-1500.00\n");
   out.nubank = [nubank.looksCard, nubank.map, m.csvToEntries(nubank, nubank.map, false)];
   const bank = banks[0], card = cards[0];
-  out.importRowsBank = m.buildImportRows(ent.entries, bank, txs, accounts);
-  out.importRowsCard = card ? m.buildImportRows(out.ofx.entries, card, txs, accounts) : null;
+  // fields added after the original app (user rules, similarity key) are left out of the comparison
+  const legacyRow = ({ rule, nd, ...r }: any) => r;
+  out.importRowsBank = m.buildImportRows(ent.entries, bank, txs, accounts).map(legacyRow);
+  out.importRowsCard = card ? m.buildImportRows(out.ofx.entries, card, txs, accounts).map(legacyRow) : null;
   const cat = m.makeCategorizer(txs);
   out.categorize = ["Uber *Trip", "Supermercado BH", "Mercado Livre", "Claude Pro", "Aluguel", "Pró-labore", "Rendimento CDB", "Coisa aleatória"].map(d => [d, cat(d, "expense"), cat(d, "income")]);
   const first = { id: "t1", type: "expense", description: "Aluguel", amountCents: 245000, category: "moradia", date: "2026-01-31", status: "paid", accountId: "a", createdAt: 1, updatedAt: 1 };
@@ -40,7 +42,7 @@ export function scenario(m: any): any {
   out.installments = m.buildInstallments({ ...first, amountCents: 100000, date: "2026-10-15" }, 3).map(strip);
   const bk = m.validateBackup(JSON.parse(m.buildBackup(out.fixture.settings, txs)));
   out.backupMeta = { ...bk.meta, exportedAt: null }; out.backupCount = bk.data.txs.length;
-  out.normalizeSettings = m.normalizeSettings({ accounts: [{ id: "x", name: "Nu", type: "cartao", closingDay: 5, dueDay: 12, limitCents: 500000, color: "c3" }] });
+  out.normalizeSettings = (({ rules, budgets, ...x }: any) => x)(m.normalizeSettings({ accounts: [{ id: "x", name: "Nu", type: "cartao", closingDay: 5, dueDay: 12, limitCents: 500000, color: "c3" }] }));
   out.money = [0, 1, 99, 123456, -500, 100000000].map(c => [m.Money.fmt(c), m.Money.plain(c), m.Money.compact(c)]);
   return JSON.parse(JSON.stringify(out));
 };

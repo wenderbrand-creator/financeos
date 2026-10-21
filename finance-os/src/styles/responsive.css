@@ -79,4 +79,8 @@
 }
 @keyframes sheet{from{transform:translateY(40px);opacity:0}}
 @media (max-width:760px){
+  .tabbar{display:grid}
+  .content{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+  .top-new,.btn.menu-btn{display:none!important}
+  .toasts{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 }

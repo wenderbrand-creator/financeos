@@ -273,12 +273,19 @@ export function App({ userId = null, userLogin = "" }: { userId?: string | null;
                   <button className="label" onClick={() => setMonth(curMonth)} title="Voltar ao mês atual"><span className="full">{D.label(month)}</span><span className="short">{D.short(month)}</span></button>
                   <button onClick={() => setMonth(D.addMonths(month, 1))} aria-label="Próximo mês"><Icon name="right" size={16} /></button>
                 </div>}
-                <button className="btn primary" onClick={() => actions.openTx(page === "cartoes" && cardSel ? { type: "expense", accountId: cardSel } : undefined)} disabled={!real.ready && !isDemo} title="Novo lançamento (atalho: N)"><Icon name="plus" size={16} /><span className="hide-sm">Novo lançamento</span></button>
+                <button className="btn primary top-new" onClick={() => actions.openTx(page === "cartoes" && cardSel ? { type: "expense", accountId: cardSel } : undefined)} disabled={!real.ready && !isDemo} title="Novo lançamento (atalho: N)"><Icon name="plus" size={16} /><span className="hide-sm">Novo lançamento</span></button>
               </div>
             </div>
           </header>
           <div className="content" key={page + (isDemo ? "-d" : "")}>{body}</div>
         </main>
+        {/* phones: the main places and the "+" within thumb reach */}
+        <nav className="tabbar" aria-label="Navegação rápida">
+          {[["inicio", "grid", "Início"], ["orcamento", "arrows", "Lançamentos"]].map(([id, ic, l]) => <button key={id} type="button" className={page === id ? "on" : ""} aria-current={page === id ? "page" : undefined} onClick={() => go(id)}><Icon name={ic} size={20} /><span>{l}</span></button>)}
+          <button type="button" className="tab-add" aria-label="Novo lançamento" disabled={!real.ready && !isDemo} onClick={() => actions.openTx(page === "cartoes" && cardSel ? { type: "expense", accountId: cardSel } : undefined)}><Icon name="plus" size={24} sw={2.2} /></button>
+          <button type="button" className={page === "cartoes" ? "on" : ""} aria-current={page === "cartoes" ? "page" : undefined} onClick={() => go("cartoes")}><Icon name="card" size={20} /><span>Cartões</span></button>
+          <button type="button" className={drawer || !["inicio", "orcamento", "cartoes"].includes(page) ? "on" : ""} onClick={() => setDrawer(true)}><Icon name="menu" size={20} /><span>Mais</span></button>
+        </nav>
       </div>
       {modal && modal.kind === "tx" && <TxModal initial={modal.tx} onClose={() => setModal(null)} />}
       {modal && modal.kind === "import" && <ImportModal cardId={modal.cardId} onClose={() => setModal(null)} />}

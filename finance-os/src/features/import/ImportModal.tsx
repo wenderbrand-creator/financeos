@@ -34,13 +34,17 @@ export function ImportModal({ onClose, cardId }: any) {
   const [result, setResult] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [busyReading, setBusyReading] = useState(false);
+  const [rerouted, setRerouted] = useState(false);
+  // after changing one row's category: offer the same for look-alike rows, and to remember it for next imports
+  const [similar, setSimilar] = useState<any>(null);
+  const [learn, setLearn] = useState<Record<string, { type: string; match: string; category: string }>>({});
   const inputRef = useRef(null);
   const account = accounts.find(a => a.id === accountId) || accounts[0];
   const cards = accounts.filter(a => a.type === "cartao");
 
   const remember = (patch) => { try { localStorage.setItem(LS_IMPORT, JSON.stringify({ ...remembered, ...patch })); } catch { } };
   const handleFile = async (f) => {
-    setError(null);
+    setError(null); setRerouted(false);
     if (!f) return;
     if (f.size > 15 * 1024 * 1024) { setError("Arquivo grande demais (máximo 15 MB)."); return; }
     try {
@@ -53,8 +57,11 @@ export function ImportModal({ onClose, cardId }: any) {
       if (parsed.error) { setError(parsed.error); return; }
       if (isOfx && !parsed.entries.length) { setError("O arquivo OFX não tem lançamentos no período exportado."); return; }
       const kind = parsed.format === "ofx" ? parsed.kind : parsed.looksCard ? "card" : "bank";
-      // pick the account that matches what the file is
-      const pick = fixedCard ? fixedCard : kind === "card"
+      // pick the account that matches what the file is. From a card, only an OFX that declares itself a bank
+      // statement is moved to the account (CSV cannot tell a bill from a statement reliably)
+      const reroute = !!fixedCard && parsed.format === "ofx" && kind === "bank" && accounts.some(a => a.type !== "cartao");
+      setRerouted(reroute);
+      const pick = fixedCard && !reroute ? fixedCard : kind === "card"
         ? (cards.find(a => a.id === remembered.card) || cards.find(a => a.id === accountId) || cards[0])
         : (accounts.find(a => a.id === remembered.bank && a.type !== "cartao") || (account && account.type !== "cartao" ? account : accounts.find(a => a.type !== "cartao")));
       if (pick) setAccountId(pick.id);
@@ -78,7 +85,9 @@ export function ImportModal({ onClose, cardId }: any) {
         return;
       }
       const kind = probe.kind;
-      const pick = fixedCard ? fixedCard : kind === "card"
+      // opened from a card but the file is the account statement: send it to the account and say so
+      setRerouted(!!fixedCard && kind === "bank" && accounts.some(a => a.type !== "cartao"));
+      const pick = fixedCard && kind === "card" ? fixedCard : kind === "card"
         ? (cards.find(a => a.id === remembered.card) || cards.find(a => a.id === accountId) || cards[0])
         : (accounts.find(a => a.id === remembered.bank && a.type !== "cartao") || (account && account.type !== "cartao" ? account : accounts.find(a => a.type !== "cartao")));
       if (pick) setAccountId(pick.id);
@@ -96,10 +105,12 @@ export function ImportModal({ onClose, cardId }: any) {
     if (!file) return { entries: [], bad: 0, balance: 0 };
     if (file.parsed.format === "pdf") {
       const isCard = account?.type === "cartao";
-      const r = parsePdfLines(file.parsed.lines, { card: isCard });
+      // what is income or expense comes from the DOCUMENT (a statement's "−" is money out; a bill's "−" is a credit),
+      // never from where it is being imported to
+      const r = parsePdfLines(file.parsed.lines, { card: file.kind === "card" });
       let entries = r.entries;
       // card bill with a due date: every line belongs to THAT bill (installments keep the original purchase date in the PDF)
-      if (isCard && r.dueDate) {
+      if (isCard && file.kind === "card" && r.dueDate) {
         const w = CardMath.dates(account, r.dueDate.slice(0, 7));
         const last = (() => { const [y, m, d] = w.close.split("-").map(Number); const t = new Date(y, m - 1, d - 1); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; })();
         entries = entries.map(e => {
@@ -113,8 +124,20 @@ export function ImportModal({ onClose, cardId }: any) {
     if (!map || map.date < 0 || (map.amount < 0 && map.credit < 0 && map.debit < 0)) return { entries: [], bad: 0, balance: 0, unmapped: true };
     return csvToEntries(file.parsed, map, positiveIncome);
   }, [file, map, positiveIncome]);
-  const baseRows = useMemo(() => account ? buildImportRows(parsedEntries.entries, account, data.txs, accounts) : [], [parsedEntries, account, data.txs, accounts]);
+  const rules = data.settings.rules || [];
+  const baseRows = useMemo(() => account ? buildImportRows(parsedEntries.entries, account, data.txs, accounts, rules) : [], [parsedEntries, account, data.txs, accounts, rules]);
   const rows = useMemo(() => baseRows.map(r => overrides[r.key] ? { ...r, ...overrides[r.key] } : r), [baseRows, overrides]);
+  const changeCat = (r, id) => {
+    patch([r.key], { category: id, unsure: false, learned: false, rule: false });
+    const keys = rows.filter(x => x.key !== r.key && x.nd && x.nd === r.nd && x.type === r.type && x.action === "normal" && !x.dup && x.category !== id).map(x => x.key);
+    setSimilar(r.nd && r.nd.length >= 3 ? { nd: r.nd, type: r.type, category: id, label: r.description, keys } : null);
+  };
+  const applySimilar = (remember: boolean) => {
+    if (!similar) return;
+    if (similar.keys.length) patch(similar.keys, { category: similar.category, unsure: false, learned: false });
+    if (remember) setLearn(l => ({ ...l, [similar.type + "|" + similar.nd]: { type: similar.type, match: similar.nd, category: similar.category } }));
+    setSimilar(null);
+  };
   const patch = (keys, p) => setOverrides(o => { const n = { ...o }; for (const k of keys) n[k] = { ...(n[k] || {}), ...p }; return n; });
 
   const counts = { all: rows.length, dup: rows.filter(r => r.dup).length, bill: rows.filter(r => r.bill).length, unsure: rows.filter(r => r.unsure && r.include && r.action === "normal").length };
@@ -136,6 +159,12 @@ export function ImportModal({ onClose, cardId }: any) {
     const ok = await actions.importTxs(list, (p) => setProgress(p));
     if (!ok) { setStep("review"); setProgress(null); return; }
     remember(account.type === "cartao" ? { card: account.id } : { bank: account.id });
+    const learned = Object.values(learn);
+    if (learned.length) {
+      const keep = rules.filter(r => !learned.some(l => l.type === r.type && l.match === r.match));
+      await actions.saveSettings({ ...data.settings, rules: [...keep, ...learned.map(l => ({ id: uid("r"), ...l }))] }, `${learned.length} regra${learned.length === 1 ? "" : "s"} de categoria salva${learned.length === 1 ? "" : "s"}`);
+      setLearn({});
+    }
     const moved = chosen.filter(r => r.action.startsWith("transfer:")).length;
     setResult({ count: chosen.length - moved, transfers: moved, from: dates[0], to: dates[dates.length - 1], inc: totals.inc, exp: totals.exp, ids: list.map(t => t.id), lastMonth: D.monthOf(dates[dates.length - 1]) });
     setStep("done");
@@ -198,6 +227,7 @@ export function ImportModal({ onClose, cardId }: any) {
       </div>
       {file.kind === "card" && !cards.length && <div className="notice warn"><Icon name="wallet" size={18} /><div style={{ flex: 1 }}>Este arquivo parece uma fatura de cartão. Crie uma conta de cartão para separar os gastos do cartão do saldo da conta corrente.
         <div style={{ marginTop: 8 }}><button className="btn sm" onClick={createCard} disabled={isDemo}><Icon name="plus" size={14} />Criar conta “Cartão de crédito”</button></div></div></div>}
+      {rerouted && account.type !== "cartao" && <div className="notice warn"><Icon name="info" size={18} /><div><b>Este PDF é o extrato da conta, não a fatura do cartão.</b> Por isso ele vai para “{account.name}”: as saídas entram como despesas e as entradas como receitas. Para lançar as compras do cartão, use o PDF da <b>fatura</b>, que fica na área do cartão no app do banco.</div></div>}
       {kindMismatch && (file.kind !== "card" || cards.length > 0) && <div className="notice"><Icon name="info" size={18} /><div>O arquivo parece {file.kind === "card" ? "uma fatura de cartão" : "um extrato de conta"}, mas a conta escolhida é {account.type === "cartao" ? "um cartão" : "uma conta comum"}. Confira o destino acima.
         {(() => { const alt = file.kind === "card" ? cards[0] : accounts.find(a => a.type !== "cartao"); return alt && alt.id !== account.id ? <div style={{ marginTop: 8 }}><button type="button" className="btn sm" onClick={() => { setAccountId(alt.id); setOverrides({}); if (file.parsed.format === "csv") setPositiveIncome(alt.type !== "cartao"); }}>Importar em “{alt.name}”</button></div> : null; })()}</div></div>}
       {isCSV && map && <div className="imp-map">
@@ -221,6 +251,17 @@ export function ImportModal({ onClose, cardId }: any) {
             <optgroup label="Receitas">{CATS.income.filter(c => !c.archived).map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</optgroup>
           </select>
         </div>
+        {similar && <div className="notice imp-similar" role="status"><Icon name="sliders" size={18} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {similar.keys.length ? <><b>Mais {similar.keys.length} parecido{similar.keys.length === 1 ? "" : "s"}</b> com “{similar.label}”. Usar {CAT_INDEX[similar.category]?.label} também?</>
+              : <>Usar <b>{CAT_INDEX[similar.category]?.label}</b> sempre que aparecer “{similar.label}”?</>}
+            <div className="imp-similar-acts">
+              {similar.keys.length > 0 && <button type="button" className="btn sm" onClick={() => applySimilar(false)}>Aplicar aos {similar.keys.length}</button>}
+              <button type="button" className="btn sm primary" onClick={() => applySimilar(true)}>{similar.keys.length ? "Aplicar e lembrar" : "Lembrar nas próximas"}</button>
+              <button type="button" className="btn ghost sm" onClick={() => setSimilar(null)}>Agora não</button>
+            </div>
+          </div></div>}
+        {Object.keys(learn).length > 0 && <p className="imp-learn-note"><Icon name="checkCircle" size={13} sw={2} />{Object.keys(learn).length} regra{Object.keys(learn).length === 1 ? "" : "s"} será{Object.keys(learn).length === 1 ? "" : "ão"} salva{Object.keys(learn).length === 1 ? "" : "s"} ao importar. Você pode editar em Configurações.</p>}
         <div className="imp-table">
           <table className="tbl resp imp-tbl">
             <thead><tr>
@@ -237,12 +278,13 @@ export function ImportModal({ onClose, cardId }: any) {
                     {r.dup && <span className="pill warn">Já existe</span>}
                     {r.bill && <span className="pill accent">Pagamento de fatura</span>}
                     {r.status === "pending" && <span className="pill">Futuro · pendente</span>}
+                    {r.rule && r.action === "normal" && !r.dup && <span className="learned" title="Categoria definida por uma regra sua"><Icon name="checkCircle" size={11} sw={2} />pela sua regra</span>}
                     {r.learned && r.action === "normal" && !r.dup && <span className="learned" title="Mesma categoria que você usou antes para essa descrição"><Icon name="checkCircle" size={11} sw={2} />do seu histórico</span>}
                   </span></td>
                 <td className="act c-cat">{r.bill || r.action !== "normal"
                   ? <select className="select sm-sel" value={r.action} aria-label="Ação" onChange={e => patch([r.key], { action: e.target.value })}>{actionOptions(r)}</select>
                   : <div className="cat-cell"><span className="d" style={{ background: catOf(r.category).color }} />
-                    <select className={"select sm-sel" + (r.unsure ? " unsure" : "")} value={r.category} aria-label="Categoria" onChange={e => patch([r.key], { category: e.target.value, unsure: false, learned: false })}>
+                    <select className={"select sm-sel" + (r.unsure ? " unsure" : "")} value={r.category} aria-label="Categoria" onChange={e => changeCat(r, e.target.value)}>
                       {CATS[r.type].filter(c => !c.archived).map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                     </select></div>}</td>
                 <td className="r amt c-amt" style={{ color: r.type === "income" ? "var(--pos)" : "var(--text)" }}><Amount cents={r.amountCents} sign={r.type === "income" ? "+" : "-"} /></td>
@@ -293,8 +335,9 @@ export function ImportModal({ onClose, cardId }: any) {
         : <button className="btn primary" onClick={() => { setMonth(result.lastMonth); go("orcamento"); onClose(); }}>Ver em Lançamentos</button>}
     </>;
   }
-  const title = fixedCard ? `Importar fatura · ${fixedCard.name}` : "Importar extrato ou fatura";
+  const asBill = fixedCard && !(rerouted && account?.type !== "cartao");
+  const title = asBill ? `Importar fatura · ${fixedCard.name}` : rerouted ? "Importar extrato da conta" : "Importar extrato ou fatura";
   const subtitle = isDemo ? "Modo demonstração: a importação entra só nos dados fictícios."
-    : fixedCard ? "Traga as compras da fatura exportada pelo app do banco. Cada compra cai na fatura certa pela data." : "Traga os lançamentos do app do banco ou do cartão de crédito.";
+    : asBill ? "Traga as compras da fatura exportada pelo app do banco. Cada compra cai na fatura certa pela data." : "Traga os lançamentos do app do banco ou do cartão de crédito.";
   return <Modal xl title={title} subtitle={subtitle} onClose={onClose} footer={footer}>{body}</Modal>;
 }

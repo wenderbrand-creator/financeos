@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_STORAGE_MODE?: string;
   readonly VITE_ALLOW_SIGNUP?: string;
   readonly VITE_USERNAME_DOMAIN?: string;
+  readonly VITE_LEGAL_NAME?: string;
+  readonly VITE_CONTACT_EMAIL?: string;
   readonly VITE_IDLE_MINUTES?: string;
 }
 interface ImportMeta { readonly env: ImportMetaEnv }

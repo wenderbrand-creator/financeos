@@ -21,7 +21,24 @@ export function normalizeSettings(raw) {
       }
       return acc;
     }) : [];
-  return { ...raw, schemaVersion: raw.schemaVersion || SCHEMA_VERSION, profileName: typeof raw.profileName === "string" ? raw.profileName : d.profileName, accounts: accounts.some(a => a.type !== "cartao") ? accounts : [...d.accounts, ...accounts], categories: normalizeCategories(raw.categories) };
+  return { ...raw, schemaVersion: raw.schemaVersion || SCHEMA_VERSION, profileName: typeof raw.profileName === "string" ? raw.profileName : d.profileName, accounts: accounts.some(a => a.type !== "cartao") ? accounts : [...d.accounts, ...accounts], categories: normalizeCategories(raw.categories),
+    rules: normalizeRules(raw.rules), budgets: normalizeBudgets(raw.budgets) };
+}
+/** "When the description contains X, use category Y" — created from imports or by hand. */
+export function normalizeRules(raw): { id: string; type: "income" | "expense"; match: string; category: string }[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  return raw.filter(r => r && (r.type === "income" || r.type === "expense") && typeof r.match === "string" && typeof r.category === "string")
+    .map(r => ({ id: typeof r.id === "string" ? r.id.slice(0, 60) : r.type + ":" + r.match, type: r.type, match: r.match.trim().slice(0, 40), category: r.category.slice(0, 64) }))
+    .filter(r => r.match.length >= 2 && !seen.has(r.type + "|" + r.match) && seen.add(r.type + "|" + r.match))
+    .slice(0, 300);
+}
+/** Monthly spending limit per expense category, in cents. */
+export function normalizeBudgets(raw): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [k, v] of Object.entries(raw)) if (typeof k === "string" && k.length <= 64 && Number.isSafeInteger(v) && (v as number) > 0 && (v as number) <= 99999999999) out[k] = v as number;
+  return out;
 }
 export function txIssues(t: any, accountIds?: Set<string> | null, catIds?: Set<string> | null) {
   const e = [];

@@ -37,7 +37,7 @@ export function TxModal({ initial, onClose }: any) {
   }));
   const [scope, setScope] = useState("one");
   const [catTouched, setCatTouched] = useState(isEdit || !!initial?.category);
-  const categorize = useMemo(() => makeCategorizer(data.txs), [data.txs]);
+  const categorize = useMemo(() => makeCategorizer(data.txs, data.settings.rules || []), [data.txs, data.settings.rules]);
   const setDesc = (v) => setF(p => {
     if (catTouched || !v.trim()) return { ...p, description: v };
     const sug = categorize(v, p.type);
